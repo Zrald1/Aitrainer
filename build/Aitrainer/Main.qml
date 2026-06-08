@@ -30,6 +30,7 @@ Window {
     // App state
     property int activeTab: 1 // 0 = Inspector, 1 = Simulator
     property bool showApiKey: false
+    property bool showHfToken: false
 
     Component.onCompleted: {
         agent.loadMemory();
@@ -120,11 +121,49 @@ Window {
         scrollTimer.start();
     }
 
+    function chatSenderName(sender) {
+        if (sender === "user") return "User";
+        if (sender === "teacher") return "Tutor";
+        if (sender === "system") return "System";
+        return "Student AI";
+    }
+
+    function chatTranscript() {
+        var lines = [];
+        for (var i = 0; i < chatModel.count; i++) {
+            var item = chatModel.get(i);
+            var timestamp = item.timestamp && item.timestamp.length > 0 ? item.timestamp : "--:--";
+            lines.push("[" + timestamp + "] " + chatSenderName(item.sender) + ":\n" + item.text);
+        }
+        return lines.join("\n\n");
+    }
+
+    function showCopyStatus(message) {
+        chatCopyStatusText.text = message;
+        copyStatusTimer.restart();
+    }
+
+    function copyChatTranscript() {
+        var transcript = chatTranscript();
+        showCopyStatus(agent.copyTextToClipboard(transcript) ? "Copied chat" : "Nothing to copy");
+    }
+
+    function copySimulationLog() {
+        showCopyStatus(agent.copyTextToClipboard(agent.simulationLog) ? "Copied log" : "No log yet");
+    }
+
     Timer {
         id: scrollTimer
         interval: 50
         repeat: false
         onTriggered: chatListView.positionViewAtEnd()
+    }
+
+    Timer {
+        id: copyStatusTimer
+        interval: 1800
+        repeat: false
+        onTriggered: chatCopyStatusText.text = ""
     }
 
     Item {
@@ -151,11 +190,34 @@ Window {
 
                 Text {
                     anchors.verticalCenter: parent.verticalCenter; anchors.left: parent.left; anchors.leftMargin: 20
+                    width: parent.width - headerActions.width - 45
                     text: "Training Session"; color: colorTextLight; font.family: root.fontFamily; font.pixelSize: 16; font.bold: true
+                    elide: Text.ElideRight
                 }
 
                 Row {
+                    id: headerActions
+                    width: implicitWidth
+                    height: implicitHeight
                     anchors.verticalCenter: parent.verticalCenter; anchors.right: parent.right; anchors.rightMargin: 20; spacing: 6
+                    Rectangle {
+                        width: 72; height: 24; radius: 4; color: "#1f1f3a"; border.color: colorCardBorder
+                        Text { text: "Copy Chat"; color: colorTextLight; font.pixelSize: 9; font.bold: true; font.family: root.fontFamily; anchors.centerIn: parent }
+                        MouseArea { anchors.fill: parent; onClicked: copyChatTranscript() }
+                    }
+                    Rectangle {
+                        width: 66; height: 24; radius: 4; color: "#1f1f3a"; border.color: colorCardBorder
+                        Text { text: "Copy Log"; color: colorTextLight; font.pixelSize: 9; font.bold: true; font.family: root.fontFamily; anchors.centerIn: parent }
+                        MouseArea { anchors.fill: parent; onClicked: copySimulationLog() }
+                    }
+                    Text {
+                        id: chatCopyStatusText
+                        text: ""
+                        color: "#10b981"; font.family: root.fontFamily; font.pixelSize: 9; font.bold: true
+                        width: text.length > 0 ? 64 : 0
+                        elide: Text.ElideRight
+                        anchors.verticalCenter: parent.verticalCenter
+                    }
                     Rectangle {
                         width: 8; height: 8; radius: 4
                         color: agent.learningEnabled ? "#10b981" : "#ef4444"
@@ -177,13 +239,13 @@ Window {
 
                 delegate: Item {
                     width: chatListView.width
-                    height: isSystem ? (systemText.implicitHeight + 12) : (bubbleBg.height + 22)
+                    height: isSystem ? (systemText.contentHeight + 16) : (bubbleBg.height + 22)
                     property bool isUser: model.sender === "user"
                     property bool isTeacher: model.sender === "teacher"
                     property bool isSystem: model.sender === "system"
 
                     // System notifications
-                    Text {
+                    TextEdit {
                         id: systemText
                         visible: isSystem
                         text: model.text
@@ -192,8 +254,15 @@ Window {
                         font.family: root.fontFamily
                         font.bold: true
                         width: parent.width - 20
-                        wrapMode: Text.Wrap
-                        horizontalAlignment: Text.AlignHCenter
+                        height: contentHeight
+                        readOnly: true
+                        selectByMouse: true
+                        selectByKeyboard: true
+                        wrapMode: TextEdit.Wrap
+                        textFormat: TextEdit.PlainText
+                        selectedTextColor: "#ffffff"
+                        selectionColor: colorPrimary
+                        horizontalAlignment: TextEdit.AlignHCenter
                         anchors.centerIn: parent
                     }
 
@@ -207,16 +276,25 @@ Window {
                     Rectangle {
                         id: bubbleBg
                         visible: !isSystem
-                        width: Math.min(Math.max(180, msgText.implicitWidth + 20), parent.width * 0.82); height: msgText.implicitHeight + 16; radius: root.cardRadius
+                        width: Math.min(Math.max(180, msgText.implicitWidth + 20), parent.width * 0.82); height: msgText.contentHeight + 16; radius: root.cardRadius
                         // User: Blue, Teacher: Emerald Green, Agent: Purple
                         color: isUser ? colorBubbleUser : (isTeacher ? "#047857" : colorBubbleAgent)
                         anchors.right: (isUser || isTeacher) ? parent.right : undefined
                         anchors.left: (!isUser && !isTeacher) ? parent.left : undefined
                         anchors.rightMargin: (isUser || isTeacher) ? 5 : 0; anchors.leftMargin: (!isUser && !isTeacher) ? 5 : 0
 
-                        Text {
+                        TextEdit {
                             id: msgText; text: (isTeacher ? "[Tutor] " : "") + model.text; color: colorTextLight; font.pixelSize: 12; font.family: root.fontFamily
-                            wrapMode: Text.Wrap; width: parent.width - 20; anchors.centerIn: parent
+                            readOnly: true
+                            selectByMouse: true
+                            selectByKeyboard: true
+                            wrapMode: TextEdit.Wrap
+                            textFormat: TextEdit.PlainText
+                            selectedTextColor: "#ffffff"
+                            selectionColor: colorPrimary
+                            width: parent.width - 20
+                            height: contentHeight
+                            anchors.centerIn: parent
                         }
                     }
                 }
@@ -639,7 +717,7 @@ Window {
 
                     // API Settings Card
                     Rectangle {
-                        width: parent.width; height: 136; color: colorBgDark; border.color: colorCardBorder; radius: root.cardRadius
+                        width: parent.width; height: 174; color: colorBgDark; border.color: colorCardBorder; radius: root.cardRadius
                         Column {
                             id: apiSettingsCol
                             anchors.fill: parent; anchors.margins: 10; spacing: 8
@@ -672,6 +750,30 @@ Window {
                                 }
                             }
 
+                            // Hugging Face Token Row
+                            Row {
+                                width: apiSettingsCol.contentWidth; height: root.controlHeight; spacing: 8
+                                Text { text: "HF token"; color: colorTextLight; font.pixelSize: 11; width: root.labelWidth; anchors.verticalCenter: parent.verticalCenter; font.family: root.fontFamily }
+
+                                Rectangle {
+                                    width: apiSettingsCol.contentWidth - root.labelWidth - 62 - 16; height: root.controlHeight; color: colorCardBg; border.color: colorCardBorder; radius: 4
+                                    TextInput {
+                                        id: hfTokenField; anchors.fill: parent; anchors.margins: 5; color: colorTextLight; font.family: root.fontFamily; font.pixelSize: 11; selectByMouse: true; verticalAlignment: Text.AlignVCenter
+                                        echoMode: showHfToken ? TextInput.Normal : TextInput.Password
+                                        text: agent.huggingFaceToken
+                                        onTextEdited: agent.huggingFaceToken = text
+                                        clip: true
+                                        Text { text: "Optional token for private datasets"; color: "#4e4e7a"; font.family: root.fontFamily; font.pixelSize: 11; visible: parent.text.length === 0; width: parent.width; elide: Text.ElideRight }
+                                    }
+                                }
+
+                                Rectangle {
+                                    width: 62; height: root.controlHeight; radius: 4; color: "#1f1f3a"; border.color: colorCardBorder
+                                    Text { text: showHfToken ? "Hide" : "Show"; color: colorTextLight; font.pixelSize: 9; font.bold: true; font.family: root.fontFamily; anchors.centerIn: parent }
+                                    MouseArea { anchors.fill: parent; onClicked: showHfToken = !showHfToken }
+                                }
+                            }
+
                             // Teacher Model Input
                             Row {
                                 width: apiSettingsCol.contentWidth; height: root.controlHeight; spacing: 8
@@ -691,7 +793,7 @@ Window {
 
                     // Agent Package and LoRA Training Card
                     Rectangle {
-                        width: parent.width; height: 405; color: colorBgDark; border.color: colorCardBorder; radius: root.cardRadius
+                        width: parent.width; height: 666; color: colorBgDark; border.color: colorCardBorder; radius: root.cardRadius
                         Column {
                             id: packageCol
                             anchors.fill: parent; anchors.margins: 10; spacing: 8
@@ -810,6 +912,188 @@ Window {
                                     text: agent.loraTrainingSummary()
                                     color: colorTextMuted; font.pixelSize: 9; wrapMode: Text.Wrap
                                     width: packageCol.contentWidth - 260; height: parent.height; maximumLineCount: 2; elide: Text.ElideRight; font.family: root.fontFamily
+                                    anchors.verticalCenter: parent.verticalCenter
+                                }
+                            }
+
+                            Row {
+                                width: packageCol.contentWidth; height: root.controlHeight; spacing: 8
+                                CheckBox {
+                                    id: localGpuCheck
+                                    width: 138; height: root.controlHeight
+                                    checked: agent.useLocalGpuTraining
+                                    text: "Use local GPU"
+                                    spacing: 7
+                                    indicator: Rectangle {
+                                        implicitWidth: 16; implicitHeight: 16
+                                        x: localGpuCheck.leftPadding
+                                        y: (localGpuCheck.height - height) / 2
+                                        radius: 3
+                                        color: localGpuCheck.checked ? "#064e3b" : "#111827"
+                                        border.color: localGpuCheck.checked ? "#10b981" : colorCardBorder
+                                        Rectangle {
+                                            width: 8; height: 8; radius: 2
+                                            anchors.centerIn: parent
+                                            visible: localGpuCheck.checked
+                                            color: "#10b981"
+                                        }
+                                    }
+                                    contentItem: Text {
+                                        text: localGpuCheck.text
+                                        color: colorTextLight
+                                        font.pixelSize: 10
+                                        font.bold: true
+                                        font.family: root.fontFamily
+                                        verticalAlignment: Text.AlignVCenter
+                                        leftPadding: localGpuCheck.indicator.width + localGpuCheck.spacing
+                                        elide: Text.ElideRight
+                                    }
+                                    onToggled: agent.useLocalGpuTraining = checked
+                                }
+                                Text {
+                                    text: agent.localGpuTrainingStatus
+                                    color: colorTextMuted; font.pixelSize: 9; wrapMode: Text.Wrap
+                                    width: packageCol.contentWidth - 146; height: parent.height; maximumLineCount: 2; elide: Text.ElideRight; font.family: root.fontFamily
+                                    anchors.verticalCenter: parent.verticalCenter
+                                }
+                            }
+
+                            Text { text: "DIGITALOCEAN GPU REMOTE TRAINING"; color: colorTextMuted; font.pixelSize: 9; font.bold: true; font.family: root.fontFamily }
+
+                            Row {
+                                width: packageCol.contentWidth; height: root.controlHeight; spacing: 8
+                                Text { text: "GPU host"; color: colorTextLight; font.pixelSize: 11; width: root.labelWidth; anchors.verticalCenter: parent.verticalCenter; font.family: root.fontFamily }
+                                Rectangle {
+                                    width: packageCol.contentWidth - root.labelWidth - 8; height: root.controlHeight; color: colorCardBg; border.color: colorCardBorder; radius: 4
+                                    TextInput {
+                                        anchors.fill: parent; anchors.margins: 6
+                                        color: colorTextLight; font.family: root.fontFamily; font.pixelSize: 10
+                                        selectByMouse: true; verticalAlignment: Text.AlignVCenter
+                                        clip: true
+                                        text: agent.gpuHost
+                                        onTextEdited: agent.gpuHost = text
+                                        Text {
+                                            text: "DigitalOcean GPU IP or hostname"
+                                            color: "#4e4e7a"; font.family: root.fontFamily; font.pixelSize: 10
+                                            visible: parent.text.length === 0
+                                            width: parent.width; elide: Text.ElideRight
+                                            anchors.verticalCenter: parent.verticalCenter
+                                        }
+                                    }
+                                }
+                            }
+
+                            Row {
+                                width: packageCol.contentWidth; height: root.controlHeight; spacing: 8
+                                Text { text: "User"; color: colorTextLight; font.pixelSize: 11; width: 36; anchors.verticalCenter: parent.verticalCenter; font.family: root.fontFamily }
+                                Rectangle {
+                                    width: Math.max(70, (packageCol.contentWidth - 36 - 34 - 54 - 32 - 92 - 40) * 0.35); height: root.controlHeight; color: colorCardBg; border.color: colorCardBorder; radius: 4
+                                    TextInput {
+                                        anchors.fill: parent; anchors.margins: 6
+                                        color: colorTextLight; font.family: root.fontFamily; font.pixelSize: 10
+                                        selectByMouse: true; verticalAlignment: Text.AlignVCenter
+                                        clip: true
+                                        text: agent.gpuUsername
+                                        onTextEdited: agent.gpuUsername = text
+                                    }
+                                }
+                                Text { text: "Port"; color: colorTextLight; font.pixelSize: 11; width: 34; anchors.verticalCenter: parent.verticalCenter; font.family: root.fontFamily }
+                                Rectangle {
+                                    width: 54; height: root.controlHeight; color: colorCardBg; border.color: colorCardBorder; radius: 4
+                                    TextInput {
+                                        anchors.fill: parent; anchors.margins: 6
+                                        color: colorTextLight; font.family: root.fontFamily; font.pixelSize: 10
+                                        selectByMouse: true; verticalAlignment: Text.AlignVCenter
+                                        clip: true
+                                        text: String(agent.gpuSshPort)
+                                        validator: IntValidator { bottom: 1; top: 65535 }
+                                        onTextEdited: {
+                                            var value = parseInt(text);
+                                            if (!isNaN(value)) {
+                                                agent.gpuSshPort = value;
+                                            }
+                                        }
+                                    }
+                                }
+                                Text { text: "Max"; color: colorTextLight; font.pixelSize: 11; width: 32; anchors.verticalCenter: parent.verticalCenter; font.family: root.fontFamily }
+                                Rectangle {
+                                    width: 92; height: root.controlHeight; color: colorCardBg; border.color: colorCardBorder; radius: 4
+                                    TextInput {
+                                        anchors.fill: parent; anchors.margins: 6
+                                        color: colorTextLight; font.family: root.fontFamily; font.pixelSize: 10
+                                        selectByMouse: true; verticalAlignment: Text.AlignVCenter
+                                        clip: true
+                                        text: String(agent.gpuMaxSamples)
+                                        validator: IntValidator { bottom: 1; top: 10000000 }
+                                        onTextEdited: {
+                                            var value = parseInt(text);
+                                            if (!isNaN(value)) {
+                                                agent.gpuMaxSamples = value;
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+
+                            Row {
+                                width: packageCol.contentWidth; height: root.controlHeight; spacing: 8
+                                Text { text: "SSH key"; color: colorTextLight; font.pixelSize: 11; width: root.labelWidth; anchors.verticalCenter: parent.verticalCenter; font.family: root.fontFamily }
+                                Rectangle {
+                                    width: packageCol.contentWidth - root.labelWidth - 8; height: root.controlHeight; color: colorCardBg; border.color: colorCardBorder; radius: 4
+                                    TextInput {
+                                        anchors.fill: parent; anchors.margins: 6
+                                        color: colorTextLight; font.family: root.fontFamily; font.pixelSize: 10
+                                        selectByMouse: true; verticalAlignment: Text.AlignVCenter
+                                        clip: true
+                                        text: agent.gpuSshKeyPath
+                                        onTextEdited: agent.gpuSshKeyPath = text
+                                        Text {
+                                            text: "Optional private key path"
+                                            color: "#4e4e7a"; font.family: root.fontFamily; font.pixelSize: 10
+                                            visible: parent.text.length === 0
+                                            width: parent.width; elide: Text.ElideRight
+                                            anchors.verticalCenter: parent.verticalCenter
+                                        }
+                                    }
+                                }
+                            }
+
+                            Row {
+                                width: packageCol.contentWidth; height: root.controlHeight; spacing: 8
+                                Text { text: "Remote dir"; color: colorTextLight; font.pixelSize: 11; width: root.labelWidth; anchors.verticalCenter: parent.verticalCenter; font.family: root.fontFamily }
+                                Rectangle {
+                                    width: packageCol.contentWidth - root.labelWidth - 8; height: root.controlHeight; color: colorCardBg; border.color: colorCardBorder; radius: 4
+                                    TextInput {
+                                        anchors.fill: parent; anchors.margins: 6
+                                        color: colorTextLight; font.family: root.fontFamily; font.pixelSize: 10
+                                        selectByMouse: true; verticalAlignment: Text.AlignVCenter
+                                        clip: true
+                                        text: agent.gpuRemoteRoot
+                                        onTextEdited: agent.gpuRemoteRoot = text
+                                    }
+                                }
+                            }
+
+                            Row {
+                                width: packageCol.contentWidth; height: root.controlHeight; spacing: 8
+                                Rectangle {
+                                    width: 118; height: root.controlHeight; radius: 4
+                                    color: agent.isGpuTrainingRunning ? "#374151" : "#7c2d12"
+                                    border.color: agent.isGpuTrainingRunning ? "#64748b" : "#fb923c"
+                                    Text { text: agent.isGpuTrainingRunning ? "GPU Running" : "Train on GPU"; color: colorTextLight; font.pixelSize: 9; font.bold: true; font.family: root.fontFamily; width: parent.width - 8; elide: Text.ElideRight; horizontalAlignment: Text.AlignHCenter; anchors.centerIn: parent }
+                                    MouseArea {
+                                        anchors.fill: parent
+                                        enabled: !agent.isGpuTrainingRunning
+                                        onClicked: {
+                                            packageStatusText.text = agent.trainCurrentAgentOnGpuServer(datasetUrlField.text, 4);
+                                            updateDashboard();
+                                        }
+                                    }
+                                }
+                                Text {
+                                    text: agent.gpuTrainingStatus
+                                    color: colorTextMuted; font.pixelSize: 9; wrapMode: Text.Wrap
+                                    width: packageCol.contentWidth - 126; height: parent.height; maximumLineCount: 2; elide: Text.ElideRight; font.family: root.fontFamily
                                     anchors.verticalCenter: parent.verticalCenter
                                 }
                             }

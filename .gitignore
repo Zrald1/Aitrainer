@@ -1,0 +1,47 @@
+# Build output
+build/
+cmake-build-*/
+CMakeFiles/
+CMakeCache.txt
+cmake_install.cmake
+compile_commands.json
+*.ninja
+.ninja_*
+
+# Qt Creator / Qt generated files
+.qtcreator/
+.cache/
+*.user
+*.user.*
+*.qmlc
+*.jsc
+qmlcache/
+
+# Binaries and libraries
+*.exe
+*.dll
+*.so
+*.dylib
+*.a
+*.lib
+*.o
+*.obj
+
+# Runtime-generated agent state
+agent_memory.txt
+sentence_memory.txt
+student_knowledge.json
+lora_adapter.txt
+note.txt
+student_agent.ai
+qml_errors.txt
+
+# Logs
+*.log
+err.log
+
+# OS/editor noise
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/

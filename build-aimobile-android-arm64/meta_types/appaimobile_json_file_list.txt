@@ -1,0 +1,1 @@
+C:/QTapp/Aitrainer/build-aimobile-android-arm64/appaimobile_autogen/include/../EWIEGA46WW/moc_mobileagentcontroller.cpp.json

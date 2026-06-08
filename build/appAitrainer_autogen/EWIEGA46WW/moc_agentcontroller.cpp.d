@@ -17,6 +17,7 @@ C:/QTapp/Aitrainer/build/appAitrainer_autogen/EWIEGA46WW/moc_agentcontroller.cpp
   C:/Qt/6.10.1/mingw_64/include/QtCore/QMap \
   C:/Qt/6.10.1/mingw_64/include/QtCore/QMetaType \
   C:/Qt/6.10.1/mingw_64/include/QtCore/QObject \
+  C:/Qt/6.10.1/mingw_64/include/QtCore/QProcess \
   C:/Qt/6.10.1/mingw_64/include/QtCore/QSharedDataPointer \
   C:/Qt/6.10.1/mingw_64/include/QtCore/QString \
   C:/Qt/6.10.1/mingw_64/include/QtCore/QStringList \
@@ -99,6 +100,7 @@ C:/QTapp/Aitrainer/build/appAitrainer_autogen/EWIEGA46WW/moc_agentcontroller.cpp
   C:/Qt/6.10.1/mingw_64/include/QtCore/qobjectdefs_impl.h \
   C:/Qt/6.10.1/mingw_64/include/QtCore/qoverload.h \
   C:/Qt/6.10.1/mingw_64/include/QtCore/qpair.h \
+  C:/Qt/6.10.1/mingw_64/include/QtCore/qprocess.h \
   C:/Qt/6.10.1/mingw_64/include/QtCore/qprocessordetection.h \
   C:/Qt/6.10.1/mingw_64/include/QtCore/qrefcount.h \
   C:/Qt/6.10.1/mingw_64/include/QtCore/qscopedpointer.h \

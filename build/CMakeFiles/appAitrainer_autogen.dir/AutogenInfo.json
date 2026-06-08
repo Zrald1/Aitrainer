@@ -1160,6 +1160,7 @@
 	"MOC_COMPILATION_FILE" : "C:/QTapp/Aitrainer/build/appAitrainer_autogen/mocs_compilation.cpp",
 	"MOC_DEFINITIONS" : 
 	[
+		"AITRAINER_D3D11_GPU=1",
 		"MINGW_HAS_SECURE_API=1",
 		"QT_CORE_LIB",
 		"QT_GUI_LIB",

@@ -39,6 +39,12 @@ public:
                        int epochs,
                        double learningRate,
                        double salience);
+    bool trainSequenceGpu(const std::vector<std::string> &tokens,
+                          int epochs,
+                          double learningRate,
+                          double salience,
+                          std::string *status = nullptr);
+    static bool localGpuAvailable(std::string *status = nullptr);
 
     std::vector<std::pair<std::pair<std::string, std::string>, double>> materializedDeltas(double minimumDelta) const;
 

@@ -50,10 +50,14 @@ template <> constexpr inline auto AgentController::qt_create_metaobjectdata<qt_m
         "prompt",
         "response",
         "featherlessApiKeyChanged",
+        "huggingFaceTokenChanged",
         "teacherModelChanged",
         "simulationStatusChanged",
         "simulationLogChanged",
         "simulationDelayChanged",
+        "gpuSettingsChanged",
+        "gpuTrainingStatusChanged",
+        "localGpuTrainingChanged",
         "testScoresChanged",
         "lastTestResultChanged",
         "simulationMessageAdded",
@@ -69,11 +73,13 @@ template <> constexpr inline auto AgentController::qt_create_metaobjectdata<qt_m
         "epochs",
         "trainLoraFromDatasetUrl",
         "datasetUrl",
+        "trainCurrentAgentOnGpuServer",
         "exportAgentPackage",
         "filePath",
         "importAgentPackage",
         "agentFilesSummary",
         "loraTrainingSummary",
+        "copyTextToClipboard",
         "getAssociationsForWord",
         "QVariantList",
         "word",
@@ -91,6 +97,7 @@ template <> constexpr inline auto AgentController::qt_create_metaobjectdata<qt_m
         "learningEnabled",
         "contextWindow",
         "featherlessApiKey",
+        "huggingFaceToken",
         "teacherModel",
         "isSimulationRunning",
         "simulationTopic",
@@ -98,6 +105,17 @@ template <> constexpr inline auto AgentController::qt_create_metaobjectdata<qt_m
         "simulationCurrentTurn",
         "simulationLog",
         "simulationDelay",
+        "gpuHost",
+        "gpuSshPort",
+        "gpuUsername",
+        "gpuSshKeyPath",
+        "gpuRemoteRoot",
+        "gpuMaxSamples",
+        "isGpuTrainingRunning",
+        "gpuTrainingStatus",
+        "useLocalGpuTraining",
+        "isLocalGpuTrainingRunning",
+        "localGpuTrainingStatus",
         "testScores",
         "lastTestResult",
         "QVariantMap",
@@ -121,112 +139,156 @@ template <> constexpr inline auto AgentController::qt_create_metaobjectdata<qt_m
         }}),
         // Signal 'featherlessApiKeyChanged'
         QtMocHelpers::SignalData<void()>(10, 2, QMC::AccessPublic, QMetaType::Void),
-        // Signal 'teacherModelChanged'
+        // Signal 'huggingFaceTokenChanged'
         QtMocHelpers::SignalData<void()>(11, 2, QMC::AccessPublic, QMetaType::Void),
-        // Signal 'simulationStatusChanged'
+        // Signal 'teacherModelChanged'
         QtMocHelpers::SignalData<void()>(12, 2, QMC::AccessPublic, QMetaType::Void),
-        // Signal 'simulationLogChanged'
+        // Signal 'simulationStatusChanged'
         QtMocHelpers::SignalData<void()>(13, 2, QMC::AccessPublic, QMetaType::Void),
-        // Signal 'simulationDelayChanged'
+        // Signal 'simulationLogChanged'
         QtMocHelpers::SignalData<void()>(14, 2, QMC::AccessPublic, QMetaType::Void),
-        // Signal 'testScoresChanged'
+        // Signal 'simulationDelayChanged'
         QtMocHelpers::SignalData<void()>(15, 2, QMC::AccessPublic, QMetaType::Void),
-        // Signal 'lastTestResultChanged'
+        // Signal 'gpuSettingsChanged'
         QtMocHelpers::SignalData<void()>(16, 2, QMC::AccessPublic, QMetaType::Void),
+        // Signal 'gpuTrainingStatusChanged'
+        QtMocHelpers::SignalData<void()>(17, 2, QMC::AccessPublic, QMetaType::Void),
+        // Signal 'localGpuTrainingChanged'
+        QtMocHelpers::SignalData<void()>(18, 2, QMC::AccessPublic, QMetaType::Void),
+        // Signal 'testScoresChanged'
+        QtMocHelpers::SignalData<void()>(19, 2, QMC::AccessPublic, QMetaType::Void),
+        // Signal 'lastTestResultChanged'
+        QtMocHelpers::SignalData<void()>(20, 2, QMC::AccessPublic, QMetaType::Void),
         // Signal 'simulationMessageAdded'
-        QtMocHelpers::SignalData<void(const QString &, const QString &)>(17, 2, QMC::AccessPublic, QMetaType::Void, {{
-            { QMetaType::QString, 18 }, { QMetaType::QString, 19 },
+        QtMocHelpers::SignalData<void(const QString &, const QString &)>(21, 2, QMC::AccessPublic, QMetaType::Void, {{
+            { QMetaType::QString, 22 }, { QMetaType::QString, 23 },
         }}),
         // Method 'learnAndRespond'
-        QtMocHelpers::MethodData<QString(const QString &)>(20, 2, QMC::AccessPublic, QMetaType::QString, {{
-            { QMetaType::QString, 21 },
+        QtMocHelpers::MethodData<QString(const QString &)>(24, 2, QMC::AccessPublic, QMetaType::QString, {{
+            { QMetaType::QString, 25 },
         }}),
         // Method 'saveMemory'
-        QtMocHelpers::MethodData<bool()>(22, 2, QMC::AccessPublic, QMetaType::Bool),
+        QtMocHelpers::MethodData<bool()>(26, 2, QMC::AccessPublic, QMetaType::Bool),
         // Method 'loadMemory'
-        QtMocHelpers::MethodData<bool()>(23, 2, QMC::AccessPublic, QMetaType::Bool),
+        QtMocHelpers::MethodData<bool()>(27, 2, QMC::AccessPublic, QMetaType::Bool),
         // Method 'clearMemory'
-        QtMocHelpers::MethodData<void()>(24, 2, QMC::AccessPublic, QMetaType::Void),
+        QtMocHelpers::MethodData<void()>(28, 2, QMC::AccessPublic, QMetaType::Void),
         // Method 'trainLoraFromText'
-        QtMocHelpers::MethodData<QString(const QString &, int)>(25, 2, QMC::AccessPublic, QMetaType::QString, {{
-            { QMetaType::QString, 26 }, { QMetaType::Int, 27 },
+        QtMocHelpers::MethodData<QString(const QString &, int)>(29, 2, QMC::AccessPublic, QMetaType::QString, {{
+            { QMetaType::QString, 30 }, { QMetaType::Int, 31 },
         }}),
         // Method 'trainLoraFromText'
-        QtMocHelpers::MethodData<QString(const QString &)>(25, 2, QMC::AccessPublic | QMC::MethodCloned, QMetaType::QString, {{
-            { QMetaType::QString, 26 },
+        QtMocHelpers::MethodData<QString(const QString &)>(29, 2, QMC::AccessPublic | QMC::MethodCloned, QMetaType::QString, {{
+            { QMetaType::QString, 30 },
         }}),
         // Method 'trainLoraFromDatasetUrl'
-        QtMocHelpers::MethodData<QString(const QString &, int)>(28, 2, QMC::AccessPublic, QMetaType::QString, {{
-            { QMetaType::QString, 29 }, { QMetaType::Int, 27 },
+        QtMocHelpers::MethodData<QString(const QString &, int)>(32, 2, QMC::AccessPublic, QMetaType::QString, {{
+            { QMetaType::QString, 33 }, { QMetaType::Int, 31 },
         }}),
         // Method 'trainLoraFromDatasetUrl'
-        QtMocHelpers::MethodData<QString(const QString &)>(28, 2, QMC::AccessPublic | QMC::MethodCloned, QMetaType::QString, {{
-            { QMetaType::QString, 29 },
+        QtMocHelpers::MethodData<QString(const QString &)>(32, 2, QMC::AccessPublic | QMC::MethodCloned, QMetaType::QString, {{
+            { QMetaType::QString, 33 },
+        }}),
+        // Method 'trainCurrentAgentOnGpuServer'
+        QtMocHelpers::MethodData<QString(const QString &, int)>(34, 2, QMC::AccessPublic, QMetaType::QString, {{
+            { QMetaType::QString, 33 }, { QMetaType::Int, 31 },
+        }}),
+        // Method 'trainCurrentAgentOnGpuServer'
+        QtMocHelpers::MethodData<QString(const QString &)>(34, 2, QMC::AccessPublic | QMC::MethodCloned, QMetaType::QString, {{
+            { QMetaType::QString, 33 },
         }}),
         // Method 'exportAgentPackage'
-        QtMocHelpers::MethodData<QString(const QString &)>(30, 2, QMC::AccessPublic, QMetaType::QString, {{
-            { QMetaType::QString, 31 },
+        QtMocHelpers::MethodData<QString(const QString &)>(35, 2, QMC::AccessPublic, QMetaType::QString, {{
+            { QMetaType::QString, 36 },
         }}),
         // Method 'importAgentPackage'
-        QtMocHelpers::MethodData<QString(const QString &)>(32, 2, QMC::AccessPublic, QMetaType::QString, {{
-            { QMetaType::QString, 31 },
+        QtMocHelpers::MethodData<QString(const QString &)>(37, 2, QMC::AccessPublic, QMetaType::QString, {{
+            { QMetaType::QString, 36 },
         }}),
         // Method 'agentFilesSummary'
-        QtMocHelpers::MethodData<QString() const>(33, 2, QMC::AccessPublic, QMetaType::QString),
+        QtMocHelpers::MethodData<QString() const>(38, 2, QMC::AccessPublic, QMetaType::QString),
         // Method 'loraTrainingSummary'
-        QtMocHelpers::MethodData<QString() const>(34, 2, QMC::AccessPublic, QMetaType::QString),
+        QtMocHelpers::MethodData<QString() const>(39, 2, QMC::AccessPublic, QMetaType::QString),
+        // Method 'copyTextToClipboard'
+        QtMocHelpers::MethodData<bool(const QString &) const>(40, 2, QMC::AccessPublic, QMetaType::Bool, {{
+            { QMetaType::QString, 23 },
+        }}),
         // Method 'getAssociationsForWord'
-        QtMocHelpers::MethodData<QVariantList(const QString &) const>(35, 2, QMC::AccessPublic, 0x80000000 | 36, {{
-            { QMetaType::QString, 37 },
+        QtMocHelpers::MethodData<QVariantList(const QString &) const>(41, 2, QMC::AccessPublic, 0x80000000 | 42, {{
+            { QMetaType::QString, 43 },
         }}),
         // Method 'getTopAssociations'
-        QtMocHelpers::MethodData<QVariantList(int) const>(38, 2, QMC::AccessPublic, 0x80000000 | 36, {{
-            { QMetaType::Int, 39 },
+        QtMocHelpers::MethodData<QVariantList(int) const>(44, 2, QMC::AccessPublic, 0x80000000 | 42, {{
+            { QMetaType::Int, 45 },
         }}),
         // Method 'startSimulation'
-        QtMocHelpers::MethodData<void(const QString &, int)>(40, 2, QMC::AccessPublic, QMetaType::Void, {{
-            { QMetaType::QString, 41 }, { QMetaType::Int, 42 },
+        QtMocHelpers::MethodData<void(const QString &, int)>(46, 2, QMC::AccessPublic, QMetaType::Void, {{
+            { QMetaType::QString, 47 }, { QMetaType::Int, 48 },
         }}),
         // Method 'stopSimulation'
-        QtMocHelpers::MethodData<void()>(43, 2, QMC::AccessPublic, QMetaType::Void),
+        QtMocHelpers::MethodData<void()>(49, 2, QMC::AccessPublic, QMetaType::Void),
         // Method 'clearTestScores'
-        QtMocHelpers::MethodData<void()>(44, 2, QMC::AccessPublic, QMetaType::Void),
+        QtMocHelpers::MethodData<void()>(50, 2, QMC::AccessPublic, QMetaType::Void),
     };
     QtMocHelpers::UintData qt_properties {
         // property 'databasePath'
-        QtMocHelpers::PropertyData<QString>(45, QMetaType::QString, QMC::DefaultPropertyFlags | QMC::Writable | QMC::StdCppSet, 0),
+        QtMocHelpers::PropertyData<QString>(51, QMetaType::QString, QMC::DefaultPropertyFlags | QMC::Writable | QMC::StdCppSet, 0),
         // property 'vocabularySize'
-        QtMocHelpers::PropertyData<int>(46, QMetaType::Int, QMC::DefaultPropertyFlags, 1),
+        QtMocHelpers::PropertyData<int>(52, QMetaType::Int, QMC::DefaultPropertyFlags, 1),
         // property 'totalAssociations'
-        QtMocHelpers::PropertyData<int>(47, QMetaType::Int, QMC::DefaultPropertyFlags, 1),
+        QtMocHelpers::PropertyData<int>(53, QMetaType::Int, QMC::DefaultPropertyFlags, 1),
         // property 'temperature'
-        QtMocHelpers::PropertyData<double>(48, QMetaType::Double, QMC::DefaultPropertyFlags | QMC::Writable | QMC::StdCppSet, 2),
+        QtMocHelpers::PropertyData<double>(54, QMetaType::Double, QMC::DefaultPropertyFlags | QMC::Writable | QMC::StdCppSet, 2),
         // property 'learningEnabled'
-        QtMocHelpers::PropertyData<bool>(49, QMetaType::Bool, QMC::DefaultPropertyFlags | QMC::Writable | QMC::StdCppSet, 3),
+        QtMocHelpers::PropertyData<bool>(55, QMetaType::Bool, QMC::DefaultPropertyFlags | QMC::Writable | QMC::StdCppSet, 3),
         // property 'contextWindow'
-        QtMocHelpers::PropertyData<int>(50, QMetaType::Int, QMC::DefaultPropertyFlags | QMC::Writable | QMC::StdCppSet, 4),
+        QtMocHelpers::PropertyData<int>(56, QMetaType::Int, QMC::DefaultPropertyFlags | QMC::Writable | QMC::StdCppSet, 4),
         // property 'featherlessApiKey'
-        QtMocHelpers::PropertyData<QString>(51, QMetaType::QString, QMC::DefaultPropertyFlags | QMC::Writable | QMC::StdCppSet, 6),
+        QtMocHelpers::PropertyData<QString>(57, QMetaType::QString, QMC::DefaultPropertyFlags | QMC::Writable | QMC::StdCppSet, 6),
+        // property 'huggingFaceToken'
+        QtMocHelpers::PropertyData<QString>(58, QMetaType::QString, QMC::DefaultPropertyFlags | QMC::Writable | QMC::StdCppSet, 7),
         // property 'teacherModel'
-        QtMocHelpers::PropertyData<QString>(52, QMetaType::QString, QMC::DefaultPropertyFlags | QMC::Writable | QMC::StdCppSet, 7),
+        QtMocHelpers::PropertyData<QString>(59, QMetaType::QString, QMC::DefaultPropertyFlags | QMC::Writable | QMC::StdCppSet, 8),
         // property 'isSimulationRunning'
-        QtMocHelpers::PropertyData<bool>(53, QMetaType::Bool, QMC::DefaultPropertyFlags, 8),
+        QtMocHelpers::PropertyData<bool>(60, QMetaType::Bool, QMC::DefaultPropertyFlags, 9),
         // property 'simulationTopic'
-        QtMocHelpers::PropertyData<QString>(54, QMetaType::QString, QMC::DefaultPropertyFlags, 8),
+        QtMocHelpers::PropertyData<QString>(61, QMetaType::QString, QMC::DefaultPropertyFlags, 9),
         // property 'simulationTurns'
-        QtMocHelpers::PropertyData<int>(55, QMetaType::Int, QMC::DefaultPropertyFlags, 8),
+        QtMocHelpers::PropertyData<int>(62, QMetaType::Int, QMC::DefaultPropertyFlags, 9),
         // property 'simulationCurrentTurn'
-        QtMocHelpers::PropertyData<int>(56, QMetaType::Int, QMC::DefaultPropertyFlags, 8),
+        QtMocHelpers::PropertyData<int>(63, QMetaType::Int, QMC::DefaultPropertyFlags, 9),
         // property 'simulationLog'
-        QtMocHelpers::PropertyData<QString>(57, QMetaType::QString, QMC::DefaultPropertyFlags, 9),
+        QtMocHelpers::PropertyData<QString>(64, QMetaType::QString, QMC::DefaultPropertyFlags, 10),
         // property 'simulationDelay'
-        QtMocHelpers::PropertyData<int>(58, QMetaType::Int, QMC::DefaultPropertyFlags | QMC::Writable | QMC::StdCppSet, 10),
+        QtMocHelpers::PropertyData<int>(65, QMetaType::Int, QMC::DefaultPropertyFlags | QMC::Writable | QMC::StdCppSet, 11),
+        // property 'gpuHost'
+        QtMocHelpers::PropertyData<QString>(66, QMetaType::QString, QMC::DefaultPropertyFlags | QMC::Writable | QMC::StdCppSet, 12),
+        // property 'gpuSshPort'
+        QtMocHelpers::PropertyData<int>(67, QMetaType::Int, QMC::DefaultPropertyFlags | QMC::Writable | QMC::StdCppSet, 12),
+        // property 'gpuUsername'
+        QtMocHelpers::PropertyData<QString>(68, QMetaType::QString, QMC::DefaultPropertyFlags | QMC::Writable | QMC::StdCppSet, 12),
+        // property 'gpuSshKeyPath'
+        QtMocHelpers::PropertyData<QString>(69, QMetaType::QString, QMC::DefaultPropertyFlags | QMC::Writable | QMC::StdCppSet, 12),
+        // property 'gpuRemoteRoot'
+        QtMocHelpers::PropertyData<QString>(70, QMetaType::QString, QMC::DefaultPropertyFlags | QMC::Writable | QMC::StdCppSet, 12),
+        // property 'gpuMaxSamples'
+        QtMocHelpers::PropertyData<int>(71, QMetaType::Int, QMC::DefaultPropertyFlags | QMC::Writable | QMC::StdCppSet, 12),
+        // property 'isGpuTrainingRunning'
+        QtMocHelpers::PropertyData<bool>(72, QMetaType::Bool, QMC::DefaultPropertyFlags, 13),
+        // property 'gpuTrainingStatus'
+        QtMocHelpers::PropertyData<QString>(73, QMetaType::QString, QMC::DefaultPropertyFlags, 13),
+        // property 'useLocalGpuTraining'
+        QtMocHelpers::PropertyData<bool>(74, QMetaType::Bool, QMC::DefaultPropertyFlags | QMC::Writable | QMC::StdCppSet, 14),
+        // property 'isLocalGpuTrainingRunning'
+        QtMocHelpers::PropertyData<bool>(75, QMetaType::Bool, QMC::DefaultPropertyFlags, 14),
+        // property 'localGpuTrainingStatus'
+        QtMocHelpers::PropertyData<QString>(76, QMetaType::QString, QMC::DefaultPropertyFlags, 14),
         // property 'testScores'
-        QtMocHelpers::PropertyData<QVariantList>(59, 0x80000000 | 36, QMC::DefaultPropertyFlags | QMC::EnumOrFlag, 11),
+        QtMocHelpers::PropertyData<QVariantList>(77, 0x80000000 | 42, QMC::DefaultPropertyFlags | QMC::EnumOrFlag, 15),
         // property 'lastTestResult'
-        QtMocHelpers::PropertyData<QVariantMap>(60, 0x80000000 | 61, QMC::DefaultPropertyFlags | QMC::EnumOrFlag, 12),
+        QtMocHelpers::PropertyData<QVariantMap>(78, 0x80000000 | 79, QMC::DefaultPropertyFlags | QMC::EnumOrFlag, 16),
         // property 'isTestingPhase'
-        QtMocHelpers::PropertyData<bool>(62, QMetaType::Bool, QMC::DefaultPropertyFlags, 8),
+        QtMocHelpers::PropertyData<bool>(80, QMetaType::Bool, QMC::DefaultPropertyFlags, 9),
     };
     QtMocHelpers::UintData qt_enums {
     };
@@ -255,43 +317,53 @@ void AgentController::qt_static_metacall(QObject *_o, QMetaObject::Call _c, int 
         case 4: _t->contextWindowChanged(); break;
         case 5: _t->responseGenerated((*reinterpret_cast<std::add_pointer_t<QString>>(_a[1])),(*reinterpret_cast<std::add_pointer_t<QString>>(_a[2]))); break;
         case 6: _t->featherlessApiKeyChanged(); break;
-        case 7: _t->teacherModelChanged(); break;
-        case 8: _t->simulationStatusChanged(); break;
-        case 9: _t->simulationLogChanged(); break;
-        case 10: _t->simulationDelayChanged(); break;
-        case 11: _t->testScoresChanged(); break;
-        case 12: _t->lastTestResultChanged(); break;
-        case 13: _t->simulationMessageAdded((*reinterpret_cast<std::add_pointer_t<QString>>(_a[1])),(*reinterpret_cast<std::add_pointer_t<QString>>(_a[2]))); break;
-        case 14: { QString _r = _t->learnAndRespond((*reinterpret_cast<std::add_pointer_t<QString>>(_a[1])));
+        case 7: _t->huggingFaceTokenChanged(); break;
+        case 8: _t->teacherModelChanged(); break;
+        case 9: _t->simulationStatusChanged(); break;
+        case 10: _t->simulationLogChanged(); break;
+        case 11: _t->simulationDelayChanged(); break;
+        case 12: _t->gpuSettingsChanged(); break;
+        case 13: _t->gpuTrainingStatusChanged(); break;
+        case 14: _t->localGpuTrainingChanged(); break;
+        case 15: _t->testScoresChanged(); break;
+        case 16: _t->lastTestResultChanged(); break;
+        case 17: _t->simulationMessageAdded((*reinterpret_cast<std::add_pointer_t<QString>>(_a[1])),(*reinterpret_cast<std::add_pointer_t<QString>>(_a[2]))); break;
+        case 18: { QString _r = _t->learnAndRespond((*reinterpret_cast<std::add_pointer_t<QString>>(_a[1])));
             if (_a[0]) *reinterpret_cast<QString*>(_a[0]) = std::move(_r); }  break;
-        case 15: { bool _r = _t->saveMemory();
+        case 19: { bool _r = _t->saveMemory();
             if (_a[0]) *reinterpret_cast<bool*>(_a[0]) = std::move(_r); }  break;
-        case 16: { bool _r = _t->loadMemory();
+        case 20: { bool _r = _t->loadMemory();
             if (_a[0]) *reinterpret_cast<bool*>(_a[0]) = std::move(_r); }  break;
-        case 17: _t->clearMemory(); break;
-        case 18: { QString _r = _t->trainLoraFromText((*reinterpret_cast<std::add_pointer_t<QString>>(_a[1])),(*reinterpret_cast<std::add_pointer_t<int>>(_a[2])));
+        case 21: _t->clearMemory(); break;
+        case 22: { QString _r = _t->trainLoraFromText((*reinterpret_cast<std::add_pointer_t<QString>>(_a[1])),(*reinterpret_cast<std::add_pointer_t<int>>(_a[2])));
             if (_a[0]) *reinterpret_cast<QString*>(_a[0]) = std::move(_r); }  break;
-        case 19: { QString _r = _t->trainLoraFromText((*reinterpret_cast<std::add_pointer_t<QString>>(_a[1])));
+        case 23: { QString _r = _t->trainLoraFromText((*reinterpret_cast<std::add_pointer_t<QString>>(_a[1])));
             if (_a[0]) *reinterpret_cast<QString*>(_a[0]) = std::move(_r); }  break;
-        case 20: { QString _r = _t->trainLoraFromDatasetUrl((*reinterpret_cast<std::add_pointer_t<QString>>(_a[1])),(*reinterpret_cast<std::add_pointer_t<int>>(_a[2])));
+        case 24: { QString _r = _t->trainLoraFromDatasetUrl((*reinterpret_cast<std::add_pointer_t<QString>>(_a[1])),(*reinterpret_cast<std::add_pointer_t<int>>(_a[2])));
             if (_a[0]) *reinterpret_cast<QString*>(_a[0]) = std::move(_r); }  break;
-        case 21: { QString _r = _t->trainLoraFromDatasetUrl((*reinterpret_cast<std::add_pointer_t<QString>>(_a[1])));
+        case 25: { QString _r = _t->trainLoraFromDatasetUrl((*reinterpret_cast<std::add_pointer_t<QString>>(_a[1])));
             if (_a[0]) *reinterpret_cast<QString*>(_a[0]) = std::move(_r); }  break;
-        case 22: { QString _r = _t->exportAgentPackage((*reinterpret_cast<std::add_pointer_t<QString>>(_a[1])));
+        case 26: { QString _r = _t->trainCurrentAgentOnGpuServer((*reinterpret_cast<std::add_pointer_t<QString>>(_a[1])),(*reinterpret_cast<std::add_pointer_t<int>>(_a[2])));
             if (_a[0]) *reinterpret_cast<QString*>(_a[0]) = std::move(_r); }  break;
-        case 23: { QString _r = _t->importAgentPackage((*reinterpret_cast<std::add_pointer_t<QString>>(_a[1])));
+        case 27: { QString _r = _t->trainCurrentAgentOnGpuServer((*reinterpret_cast<std::add_pointer_t<QString>>(_a[1])));
             if (_a[0]) *reinterpret_cast<QString*>(_a[0]) = std::move(_r); }  break;
-        case 24: { QString _r = _t->agentFilesSummary();
+        case 28: { QString _r = _t->exportAgentPackage((*reinterpret_cast<std::add_pointer_t<QString>>(_a[1])));
             if (_a[0]) *reinterpret_cast<QString*>(_a[0]) = std::move(_r); }  break;
-        case 25: { QString _r = _t->loraTrainingSummary();
+        case 29: { QString _r = _t->importAgentPackage((*reinterpret_cast<std::add_pointer_t<QString>>(_a[1])));
             if (_a[0]) *reinterpret_cast<QString*>(_a[0]) = std::move(_r); }  break;
-        case 26: { QVariantList _r = _t->getAssociationsForWord((*reinterpret_cast<std::add_pointer_t<QString>>(_a[1])));
+        case 30: { QString _r = _t->agentFilesSummary();
+            if (_a[0]) *reinterpret_cast<QString*>(_a[0]) = std::move(_r); }  break;
+        case 31: { QString _r = _t->loraTrainingSummary();
+            if (_a[0]) *reinterpret_cast<QString*>(_a[0]) = std::move(_r); }  break;
+        case 32: { bool _r = _t->copyTextToClipboard((*reinterpret_cast<std::add_pointer_t<QString>>(_a[1])));
+            if (_a[0]) *reinterpret_cast<bool*>(_a[0]) = std::move(_r); }  break;
+        case 33: { QVariantList _r = _t->getAssociationsForWord((*reinterpret_cast<std::add_pointer_t<QString>>(_a[1])));
             if (_a[0]) *reinterpret_cast<QVariantList*>(_a[0]) = std::move(_r); }  break;
-        case 27: { QVariantList _r = _t->getTopAssociations((*reinterpret_cast<std::add_pointer_t<int>>(_a[1])));
+        case 34: { QVariantList _r = _t->getTopAssociations((*reinterpret_cast<std::add_pointer_t<int>>(_a[1])));
             if (_a[0]) *reinterpret_cast<QVariantList*>(_a[0]) = std::move(_r); }  break;
-        case 28: _t->startSimulation((*reinterpret_cast<std::add_pointer_t<QString>>(_a[1])),(*reinterpret_cast<std::add_pointer_t<int>>(_a[2]))); break;
-        case 29: _t->stopSimulation(); break;
-        case 30: _t->clearTestScores(); break;
+        case 35: _t->startSimulation((*reinterpret_cast<std::add_pointer_t<QString>>(_a[1])),(*reinterpret_cast<std::add_pointer_t<int>>(_a[2]))); break;
+        case 36: _t->stopSimulation(); break;
+        case 37: _t->clearTestScores(); break;
         default: ;
         }
     }
@@ -310,19 +382,27 @@ void AgentController::qt_static_metacall(QObject *_o, QMetaObject::Call _c, int 
             return;
         if (QtMocHelpers::indexOfMethod<void (AgentController::*)()>(_a, &AgentController::featherlessApiKeyChanged, 6))
             return;
-        if (QtMocHelpers::indexOfMethod<void (AgentController::*)()>(_a, &AgentController::teacherModelChanged, 7))
+        if (QtMocHelpers::indexOfMethod<void (AgentController::*)()>(_a, &AgentController::huggingFaceTokenChanged, 7))
             return;
-        if (QtMocHelpers::indexOfMethod<void (AgentController::*)()>(_a, &AgentController::simulationStatusChanged, 8))
+        if (QtMocHelpers::indexOfMethod<void (AgentController::*)()>(_a, &AgentController::teacherModelChanged, 8))
             return;
-        if (QtMocHelpers::indexOfMethod<void (AgentController::*)()>(_a, &AgentController::simulationLogChanged, 9))
+        if (QtMocHelpers::indexOfMethod<void (AgentController::*)()>(_a, &AgentController::simulationStatusChanged, 9))
             return;
-        if (QtMocHelpers::indexOfMethod<void (AgentController::*)()>(_a, &AgentController::simulationDelayChanged, 10))
+        if (QtMocHelpers::indexOfMethod<void (AgentController::*)()>(_a, &AgentController::simulationLogChanged, 10))
             return;
-        if (QtMocHelpers::indexOfMethod<void (AgentController::*)()>(_a, &AgentController::testScoresChanged, 11))
+        if (QtMocHelpers::indexOfMethod<void (AgentController::*)()>(_a, &AgentController::simulationDelayChanged, 11))
             return;
-        if (QtMocHelpers::indexOfMethod<void (AgentController::*)()>(_a, &AgentController::lastTestResultChanged, 12))
+        if (QtMocHelpers::indexOfMethod<void (AgentController::*)()>(_a, &AgentController::gpuSettingsChanged, 12))
             return;
-        if (QtMocHelpers::indexOfMethod<void (AgentController::*)(const QString & , const QString & )>(_a, &AgentController::simulationMessageAdded, 13))
+        if (QtMocHelpers::indexOfMethod<void (AgentController::*)()>(_a, &AgentController::gpuTrainingStatusChanged, 13))
+            return;
+        if (QtMocHelpers::indexOfMethod<void (AgentController::*)()>(_a, &AgentController::localGpuTrainingChanged, 14))
+            return;
+        if (QtMocHelpers::indexOfMethod<void (AgentController::*)()>(_a, &AgentController::testScoresChanged, 15))
+            return;
+        if (QtMocHelpers::indexOfMethod<void (AgentController::*)()>(_a, &AgentController::lastTestResultChanged, 16))
+            return;
+        if (QtMocHelpers::indexOfMethod<void (AgentController::*)(const QString & , const QString & )>(_a, &AgentController::simulationMessageAdded, 17))
             return;
     }
     if (_c == QMetaObject::ReadProperty) {
@@ -335,16 +415,28 @@ void AgentController::qt_static_metacall(QObject *_o, QMetaObject::Call _c, int 
         case 4: *reinterpret_cast<bool*>(_v) = _t->learningEnabled(); break;
         case 5: *reinterpret_cast<int*>(_v) = _t->contextWindow(); break;
         case 6: *reinterpret_cast<QString*>(_v) = _t->featherlessApiKey(); break;
-        case 7: *reinterpret_cast<QString*>(_v) = _t->teacherModel(); break;
-        case 8: *reinterpret_cast<bool*>(_v) = _t->isSimulationRunning(); break;
-        case 9: *reinterpret_cast<QString*>(_v) = _t->simulationTopic(); break;
-        case 10: *reinterpret_cast<int*>(_v) = _t->simulationTurns(); break;
-        case 11: *reinterpret_cast<int*>(_v) = _t->simulationCurrentTurn(); break;
-        case 12: *reinterpret_cast<QString*>(_v) = _t->simulationLog(); break;
-        case 13: *reinterpret_cast<int*>(_v) = _t->simulationDelay(); break;
-        case 14: *reinterpret_cast<QVariantList*>(_v) = _t->testScores(); break;
-        case 15: *reinterpret_cast<QVariantMap*>(_v) = _t->lastTestResult(); break;
-        case 16: *reinterpret_cast<bool*>(_v) = _t->isTestingPhase(); break;
+        case 7: *reinterpret_cast<QString*>(_v) = _t->huggingFaceToken(); break;
+        case 8: *reinterpret_cast<QString*>(_v) = _t->teacherModel(); break;
+        case 9: *reinterpret_cast<bool*>(_v) = _t->isSimulationRunning(); break;
+        case 10: *reinterpret_cast<QString*>(_v) = _t->simulationTopic(); break;
+        case 11: *reinterpret_cast<int*>(_v) = _t->simulationTurns(); break;
+        case 12: *reinterpret_cast<int*>(_v) = _t->simulationCurrentTurn(); break;
+        case 13: *reinterpret_cast<QString*>(_v) = _t->simulationLog(); break;
+        case 14: *reinterpret_cast<int*>(_v) = _t->simulationDelay(); break;
+        case 15: *reinterpret_cast<QString*>(_v) = _t->gpuHost(); break;
+        case 16: *reinterpret_cast<int*>(_v) = _t->gpuSshPort(); break;
+        case 17: *reinterpret_cast<QString*>(_v) = _t->gpuUsername(); break;
+        case 18: *reinterpret_cast<QString*>(_v) = _t->gpuSshKeyPath(); break;
+        case 19: *reinterpret_cast<QString*>(_v) = _t->gpuRemoteRoot(); break;
+        case 20: *reinterpret_cast<int*>(_v) = _t->gpuMaxSamples(); break;
+        case 21: *reinterpret_cast<bool*>(_v) = _t->isGpuTrainingRunning(); break;
+        case 22: *reinterpret_cast<QString*>(_v) = _t->gpuTrainingStatus(); break;
+        case 23: *reinterpret_cast<bool*>(_v) = _t->useLocalGpuTraining(); break;
+        case 24: *reinterpret_cast<bool*>(_v) = _t->isLocalGpuTrainingRunning(); break;
+        case 25: *reinterpret_cast<QString*>(_v) = _t->localGpuTrainingStatus(); break;
+        case 26: *reinterpret_cast<QVariantList*>(_v) = _t->testScores(); break;
+        case 27: *reinterpret_cast<QVariantMap*>(_v) = _t->lastTestResult(); break;
+        case 28: *reinterpret_cast<bool*>(_v) = _t->isTestingPhase(); break;
         default: break;
         }
     }
@@ -356,8 +448,16 @@ void AgentController::qt_static_metacall(QObject *_o, QMetaObject::Call _c, int 
         case 4: _t->setLearningEnabled(*reinterpret_cast<bool*>(_v)); break;
         case 5: _t->setContextWindow(*reinterpret_cast<int*>(_v)); break;
         case 6: _t->setFeatherlessApiKey(*reinterpret_cast<QString*>(_v)); break;
-        case 7: _t->setTeacherModel(*reinterpret_cast<QString*>(_v)); break;
-        case 13: _t->setSimulationDelay(*reinterpret_cast<int*>(_v)); break;
+        case 7: _t->setHuggingFaceToken(*reinterpret_cast<QString*>(_v)); break;
+        case 8: _t->setTeacherModel(*reinterpret_cast<QString*>(_v)); break;
+        case 14: _t->setSimulationDelay(*reinterpret_cast<int*>(_v)); break;
+        case 15: _t->setGpuHost(*reinterpret_cast<QString*>(_v)); break;
+        case 16: _t->setGpuSshPort(*reinterpret_cast<int*>(_v)); break;
+        case 17: _t->setGpuUsername(*reinterpret_cast<QString*>(_v)); break;
+        case 18: _t->setGpuSshKeyPath(*reinterpret_cast<QString*>(_v)); break;
+        case 19: _t->setGpuRemoteRoot(*reinterpret_cast<QString*>(_v)); break;
+        case 20: _t->setGpuMaxSamples(*reinterpret_cast<int*>(_v)); break;
+        case 23: _t->setUseLocalGpuTraining(*reinterpret_cast<bool*>(_v)); break;
         default: break;
         }
     }
@@ -382,20 +482,20 @@ int AgentController::qt_metacall(QMetaObject::Call _c, int _id, void **_a)
     if (_id < 0)
         return _id;
     if (_c == QMetaObject::InvokeMetaMethod) {
-        if (_id < 31)
+        if (_id < 38)
             qt_static_metacall(this, _c, _id, _a);
-        _id -= 31;
+        _id -= 38;
     }
     if (_c == QMetaObject::RegisterMethodArgumentMetaType) {
-        if (_id < 31)
+        if (_id < 38)
             *reinterpret_cast<QMetaType *>(_a[0]) = QMetaType();
-        _id -= 31;
+        _id -= 38;
     }
     if (_c == QMetaObject::ReadProperty || _c == QMetaObject::WriteProperty
             || _c == QMetaObject::ResetProperty || _c == QMetaObject::BindableProperty
             || _c == QMetaObject::RegisterPropertyMetaType) {
         qt_static_metacall(this, _c, _id, _a);
-        _id -= 17;
+        _id -= 29;
     }
     return _id;
 }
@@ -443,44 +543,68 @@ void AgentController::featherlessApiKeyChanged()
 }
 
 // SIGNAL 7
-void AgentController::teacherModelChanged()
+void AgentController::huggingFaceTokenChanged()
 {
     QMetaObject::activate(this, &staticMetaObject, 7, nullptr);
 }
 
 // SIGNAL 8
-void AgentController::simulationStatusChanged()
+void AgentController::teacherModelChanged()
 {
     QMetaObject::activate(this, &staticMetaObject, 8, nullptr);
 }
 
 // SIGNAL 9
-void AgentController::simulationLogChanged()
+void AgentController::simulationStatusChanged()
 {
     QMetaObject::activate(this, &staticMetaObject, 9, nullptr);
 }
 
 // SIGNAL 10
-void AgentController::simulationDelayChanged()
+void AgentController::simulationLogChanged()
 {
     QMetaObject::activate(this, &staticMetaObject, 10, nullptr);
 }
 
 // SIGNAL 11
-void AgentController::testScoresChanged()
+void AgentController::simulationDelayChanged()
 {
     QMetaObject::activate(this, &staticMetaObject, 11, nullptr);
 }
 
 // SIGNAL 12
-void AgentController::lastTestResultChanged()
+void AgentController::gpuSettingsChanged()
 {
     QMetaObject::activate(this, &staticMetaObject, 12, nullptr);
 }
 
 // SIGNAL 13
+void AgentController::gpuTrainingStatusChanged()
+{
+    QMetaObject::activate(this, &staticMetaObject, 13, nullptr);
+}
+
+// SIGNAL 14
+void AgentController::localGpuTrainingChanged()
+{
+    QMetaObject::activate(this, &staticMetaObject, 14, nullptr);
+}
+
+// SIGNAL 15
+void AgentController::testScoresChanged()
+{
+    QMetaObject::activate(this, &staticMetaObject, 15, nullptr);
+}
+
+// SIGNAL 16
+void AgentController::lastTestResultChanged()
+{
+    QMetaObject::activate(this, &staticMetaObject, 16, nullptr);
+}
+
+// SIGNAL 17
 void AgentController::simulationMessageAdded(const QString & _t1, const QString & _t2)
 {
-    QMetaObject::activate<void>(this, &staticMetaObject, 13, nullptr, _t1, _t2);
+    QMetaObject::activate<void>(this, &staticMetaObject, 17, nullptr, _t1, _t2);
 }
 QT_WARNING_POP

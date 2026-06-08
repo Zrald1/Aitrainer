@@ -25,16 +25,44 @@ bool LearningAgent::trainLoraText(const std::string& input,
                                   double learningRate,
                                   int rank,
                                   double alpha,
-                                  double salience) {
+                                  double salience,
+                                  bool useLocalGpu,
+                                  std::string *trainingStatus) {
     std::vector<std::string> tokens = brain.thalamus.route(input);
     if (tokens.size() < 2) {
+        if (trainingStatus) {
+            *trainingStatus = "LoRA training skipped: input produced fewer than two tokens.";
+        }
         return false;
     }
 
     lora.configure(rank, alpha);
-    lora.trainSequence(tokens, epochs, learningRate, salience);
+    if (useLocalGpu) {
+        std::string gpuStatus;
+        if (lora.trainSequenceGpu(tokens, epochs, learningRate, salience, &gpuStatus)) {
+            if (trainingStatus) {
+                *trainingStatus = gpuStatus;
+            }
+        } else {
+            lora.trainSequence(tokens, epochs, learningRate, salience);
+            if (trainingStatus) {
+                *trainingStatus = gpuStatus.empty()
+                    ? "Local GPU unavailable; trained with the pure C++ CPU LoRA path."
+                    : gpuStatus + " Trained with the pure C++ CPU LoRA fallback.";
+            }
+        }
+    } else {
+        lora.trainSequence(tokens, epochs, learningRate, salience);
+        if (trainingStatus) {
+            *trainingStatus = "Pure C++ CPU LoRA training complete.";
+        }
+    }
     mergeLora(0.001);
     return true;
+}
+
+bool LearningAgent::localGpuAvailable(std::string *status) {
+    return LoraAdapter::localGpuAvailable(status);
 }
 
 void LearningAgent::mergeLora(double minimumDelta) {
@@ -77,12 +105,13 @@ void LearningAgent::applySynapticDecay(double decayRate, double pruneThreshold) 
 bool LearningAgent::save(const std::string& filePath) {
     std::string path = filePath.empty() ? memoryFile : filePath;
     brain.hippocampus.save(path);
-    return true;
+    return brain.saveSentenceMemory(sentenceFile);
 }
 
 bool LearningAgent::load(const std::string& filePath) {
     std::string path = filePath.empty() ? memoryFile : filePath;
     brain.hippocampus.load(path);
+    brain.loadSentenceMemory(sentenceFile);
     return true;
 }
 
@@ -90,6 +119,7 @@ void LearningAgent::clear() {
     brain.hippocampus.longTermMemory.clear();
     brain.cerebellum.practiceCount.clear();
     brain.amygdala.emotionalValue.clear();
+    brain.clearSentenceMemory();
     clearLora();
 }
 
@@ -111,6 +141,14 @@ std::string LearningAgent::getMemoryFilePath() const {
 
 void LearningAgent::setMemoryFilePath(const std::string& path) {
     memoryFile = path;
+}
+
+void LearningAgent::setSentenceMemoryFilePath(const std::string& path) {
+    sentenceFile = path;
+}
+
+void LearningAgent::setLoraFilePath(const std::string& path) {
+    loraFile = path;
 }
 
 std::unordered_map<std::string, int> LearningAgent::getAssociations(const std::string& word) const {

@@ -400,6 +400,15 @@ Vulkan_LIBRARY:FILEPATH=Vulkan_LIBRARY-NOTFOUND
 //Path to a program.
 WINDEPLOYQT_EXECUTABLE:FILEPATH=C:/Qt/6.10.1/mingw_64/bin/windeployqt.exe
 
+//Value Computed by CMake
+aimobile_BINARY_DIR:STATIC=C:/QTapp/Aitrainer/build/Desktop_Qt_6_10_1_MinGW_64_bit-Debug/aimobile
+
+//Value Computed by CMake
+aimobile_IS_TOP_LEVEL:STATIC=OFF
+
+//Value Computed by CMake
+aimobile_SOURCE_DIR:STATIC=C:/QTapp/Aitrainer/aimobile
+
 
 ########################
 # INTERNAL cache entries
@@ -517,7 +526,7 @@ CMAKE_MODULE_LINKER_FLAGS_RELWITHDEBINFO-ADVANCED:INTERNAL=1
 //ADVANCED property for variable: CMAKE_NM
 CMAKE_NM-ADVANCED:INTERNAL=1
 //number of local generators
-CMAKE_NUMBER_OF_MAKEFILES:INTERNAL=1
+CMAKE_NUMBER_OF_MAKEFILES:INTERNAL=2
 //ADVANCED property for variable: CMAKE_OBJCOPY
 CMAKE_OBJCOPY-ADVANCED:INTERNAL=1
 //ADVANCED property for variable: CMAKE_OBJDUMP

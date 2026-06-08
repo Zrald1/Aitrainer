@@ -56,9 +56,15 @@ target_link_libraries(appAitrainer
     PRIVATE Qt6::Quick Qt6::Network
 )
 
+if(WIN32)
+    target_compile_definitions(appAitrainer PRIVATE AITRAINER_D3D11_GPU=1)
+    target_link_libraries(appAitrainer PRIVATE d3d11 d3dcompiler dxgi)
+endif()
+
 include(GNUInstallDirs)
 install(TARGETS appAitrainer
     BUNDLE DESTINATION .
     LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
     RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
 )
+add_subdirectory(aimobile)

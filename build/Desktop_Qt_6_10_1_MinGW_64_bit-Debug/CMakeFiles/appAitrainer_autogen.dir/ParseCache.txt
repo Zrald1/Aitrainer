@@ -32,6 +32,7 @@ C:/QTapp/Aitrainer/agentcontroller.h
  mdp:C:/Qt/6.10.1/mingw_64/include/QtCore/QMap
  mdp:C:/Qt/6.10.1/mingw_64/include/QtCore/QMetaType
  mdp:C:/Qt/6.10.1/mingw_64/include/QtCore/QObject
+ mdp:C:/Qt/6.10.1/mingw_64/include/QtCore/QProcess
  mdp:C:/Qt/6.10.1/mingw_64/include/QtCore/QSharedDataPointer
  mdp:C:/Qt/6.10.1/mingw_64/include/QtCore/QString
  mdp:C:/Qt/6.10.1/mingw_64/include/QtCore/QStringList
@@ -114,6 +115,7 @@ C:/QTapp/Aitrainer/agentcontroller.h
  mdp:C:/Qt/6.10.1/mingw_64/include/QtCore/qobjectdefs_impl.h
  mdp:C:/Qt/6.10.1/mingw_64/include/QtCore/qoverload.h
  mdp:C:/Qt/6.10.1/mingw_64/include/QtCore/qpair.h
+ mdp:C:/Qt/6.10.1/mingw_64/include/QtCore/qprocess.h
  mdp:C:/Qt/6.10.1/mingw_64/include/QtCore/qprocessordetection.h
  mdp:C:/Qt/6.10.1/mingw_64/include/QtCore/qrefcount.h
  mdp:C:/Qt/6.10.1/mingw_64/include/QtCore/qscopedpointer.h

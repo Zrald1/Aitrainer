@@ -1,0 +1,6 @@
+<RCC>
+  <qresource prefix="/">
+    <file alias="student_agent.ai">C:/QTapp/Aitrainer/aimobile/student_agent.ai</file>
+  </qresource>
+</RCC>
+

@@ -1,0 +1,6 @@
+module aimobile
+typeinfo appaimobile.qmltypes
+prefer :/qt/qml/aimobile/
+Main 254.0 Main.qml
+depends QtQuick
+

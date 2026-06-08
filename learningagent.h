@@ -13,6 +13,7 @@ private:
     LoraAdapter lora;
     std::string memoryFile = "agent_memory.txt";
     std::string loraFile = "lora_adapter.txt";
+    std::string sentenceFile = "sentence_memory.txt";
 
 public:
     LearningAgent();
@@ -22,7 +23,7 @@ public:
     void learn(const std::string& input, double salience);
 
     // Stochastic response generation
-    std::string respond(const std::string& input, double temperature = 0.5, int contextWindow = 2, int maxWords = 150);
+    std::string respond(const std::string& input, double temperature = 0.5, int contextWindow = 2, int maxWords = 4096);
 
     // Pure C++ LoRA-like adapter training
     bool trainLoraText(const std::string& input,
@@ -30,7 +31,10 @@ public:
                        double learningRate = 0.05,
                        int rank = 4,
                        double alpha = 8.0,
-                       double salience = 1.0);
+                       double salience = 1.0,
+                       bool useLocalGpu = false,
+                       std::string *trainingStatus = nullptr);
+    static bool localGpuAvailable(std::string *status = nullptr);
     void mergeLora(double minimumDelta = 0.01);
     bool saveLora(const std::string& filePath = "");
     bool loadLora(const std::string& filePath = "");
@@ -51,6 +55,8 @@ public:
     int getTotalAssociationsCount() const;
     std::string getMemoryFilePath() const;
     void setMemoryFilePath(const std::string& path);
+    void setSentenceMemoryFilePath(const std::string& path);
+    void setLoraFilePath(const std::string& path);
 
     // Inspector functions for UI
     std::unordered_map<std::string, int> getAssociations(const std::string& word) const;

@@ -1,0 +1,14 @@
+--bare
+-I
+C:/QTapp/Aitrainer/build-aimobile-android-arm64
+-I
+C:/Qt/6.10.1/android_arm64_v8a/qml
+--resource
+C:/QTapp/Aitrainer/build-aimobile-android-arm64/.qt/rcc/qmake_aimobile.qrc
+--resource
+C:/QTapp/Aitrainer/build-aimobile-android-arm64/.qt/rcc/appaimobile_raw_qml_0.qrc
+--resource
+C:/QTapp/Aitrainer/build-aimobile-android-arm64/.qt/rcc/bundled_student_model.qrc
+C:/QTapp/Aitrainer/aimobile/Main.qml
+--json
+C:/QTapp/Aitrainer/build-aimobile-android-arm64/appaimobile_qmllint.json

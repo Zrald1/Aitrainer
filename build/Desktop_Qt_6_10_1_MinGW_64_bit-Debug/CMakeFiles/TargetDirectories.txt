@@ -11,6 +11,7 @@ C:/QTapp/Aitrainer/build/Desktop_Qt_6_10_1_MinGW_64_bit-Debug/CMakeFiles/appAitr
 C:/QTapp/Aitrainer/build/Desktop_Qt_6_10_1_MinGW_64_bit-Debug/CMakeFiles/appAitrainer_copy_res.dir
 C:/QTapp/Aitrainer/build/Desktop_Qt_6_10_1_MinGW_64_bit-Debug/CMakeFiles/generate_qmlls_build_ini_file.dir
 C:/QTapp/Aitrainer/build/Desktop_Qt_6_10_1_MinGW_64_bit-Debug/CMakeFiles/module_appAitrainer_aotstats_target.dir
+C:/QTapp/Aitrainer/build/Desktop_Qt_6_10_1_MinGW_64_bit-Debug/CMakeFiles/module_appaimobile_aotstats_target.dir
 C:/QTapp/Aitrainer/build/Desktop_Qt_6_10_1_MinGW_64_bit-Debug/CMakeFiles/all_aotstats.dir
 C:/QTapp/Aitrainer/build/Desktop_Qt_6_10_1_MinGW_64_bit-Debug/CMakeFiles/appAitrainer_qmlimportscan.dir
 C:/QTapp/Aitrainer/build/Desktop_Qt_6_10_1_MinGW_64_bit-Debug/CMakeFiles/edit_cache.dir
@@ -21,3 +22,19 @@ C:/QTapp/Aitrainer/build/Desktop_Qt_6_10_1_MinGW_64_bit-Debug/CMakeFiles/install
 C:/QTapp/Aitrainer/build/Desktop_Qt_6_10_1_MinGW_64_bit-Debug/CMakeFiles/install/strip.dir
 C:/QTapp/Aitrainer/build/Desktop_Qt_6_10_1_MinGW_64_bit-Debug/CMakeFiles/appAitrainer_autogen_timestamp_deps.dir
 C:/QTapp/Aitrainer/build/Desktop_Qt_6_10_1_MinGW_64_bit-Debug/CMakeFiles/appAitrainer_autogen.dir
+C:/QTapp/Aitrainer/build/Desktop_Qt_6_10_1_MinGW_64_bit-Debug/aimobile/CMakeFiles/appaimobile.dir
+C:/QTapp/Aitrainer/build/Desktop_Qt_6_10_1_MinGW_64_bit-Debug/aimobile/CMakeFiles/appaimobile_qmltyperegistration.dir
+C:/QTapp/Aitrainer/build/Desktop_Qt_6_10_1_MinGW_64_bit-Debug/aimobile/CMakeFiles/appaimobile_qmllint.dir
+C:/QTapp/Aitrainer/build/Desktop_Qt_6_10_1_MinGW_64_bit-Debug/aimobile/CMakeFiles/appaimobile_qmllint_json.dir
+C:/QTapp/Aitrainer/build/Desktop_Qt_6_10_1_MinGW_64_bit-Debug/aimobile/CMakeFiles/appaimobile_qmllint_module.dir
+C:/QTapp/Aitrainer/build/Desktop_Qt_6_10_1_MinGW_64_bit-Debug/aimobile/CMakeFiles/appaimobile_copy_qml.dir
+C:/QTapp/Aitrainer/build/Desktop_Qt_6_10_1_MinGW_64_bit-Debug/aimobile/CMakeFiles/appaimobile_copy_res.dir
+C:/QTapp/Aitrainer/build/Desktop_Qt_6_10_1_MinGW_64_bit-Debug/aimobile/CMakeFiles/appaimobile_qmlimportscan.dir
+C:/QTapp/Aitrainer/build/Desktop_Qt_6_10_1_MinGW_64_bit-Debug/aimobile/CMakeFiles/edit_cache.dir
+C:/QTapp/Aitrainer/build/Desktop_Qt_6_10_1_MinGW_64_bit-Debug/aimobile/CMakeFiles/rebuild_cache.dir
+C:/QTapp/Aitrainer/build/Desktop_Qt_6_10_1_MinGW_64_bit-Debug/aimobile/CMakeFiles/list_install_components.dir
+C:/QTapp/Aitrainer/build/Desktop_Qt_6_10_1_MinGW_64_bit-Debug/aimobile/CMakeFiles/install.dir
+C:/QTapp/Aitrainer/build/Desktop_Qt_6_10_1_MinGW_64_bit-Debug/aimobile/CMakeFiles/install/local.dir
+C:/QTapp/Aitrainer/build/Desktop_Qt_6_10_1_MinGW_64_bit-Debug/aimobile/CMakeFiles/install/strip.dir
+C:/QTapp/Aitrainer/build/Desktop_Qt_6_10_1_MinGW_64_bit-Debug/aimobile/CMakeFiles/appaimobile_autogen_timestamp_deps.dir
+C:/QTapp/Aitrainer/build/Desktop_Qt_6_10_1_MinGW_64_bit-Debug/aimobile/CMakeFiles/appaimobile_autogen.dir

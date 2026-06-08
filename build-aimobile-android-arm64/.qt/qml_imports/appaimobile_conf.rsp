@@ -1,0 +1,15 @@
+-rootPath
+C:/QTapp/Aitrainer/aimobile
+-cmake-output
+-output-file
+C:/QTapp/Aitrainer/build-aimobile-android-arm64/.qt/qml_imports/appaimobile_conf.cmake
+-importPath
+C:/QTapp/Aitrainer/build-aimobile-android-arm64/aimobile
+-importPath
+C:/QTapp/Aitrainer/build-aimobile-android-arm64
+-importPath
+C:/Qt/6.10.1/android_arm64_v8a/qml
+-qrcFiles
+C:/QTapp/Aitrainer/build-aimobile-android-arm64/.qt/rcc/qmake_aimobile.qrc
+C:/QTapp/Aitrainer/build-aimobile-android-arm64/.qt/rcc/appaimobile_raw_qml_0.qrc
+C:/QTapp/Aitrainer/build-aimobile-android-arm64/.qt/rcc/bundled_student_model.qrc

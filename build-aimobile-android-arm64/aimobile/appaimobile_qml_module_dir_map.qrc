@@ -1,0 +1,6 @@
+<RCC>
+  <qresource prefix="/">
+    <file alias="/qt/qml/aimobile">C:/QTapp/Aitrainer/build-aimobile-android-arm64/aimobile</file>
+
+  </qresource>
+</RCC>
