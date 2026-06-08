@@ -1,0 +1,6 @@
+<RCC>
+  <qresource prefix="/qt/qml/Aitrainer">
+    <file alias="qmldir">C:/QTapp/Aitrainer/build/Desktop_Qt_6_10_1_MinGW_64_bit-Debug/Aitrainer/qmldir</file>
+  </qresource>
+</RCC>
+

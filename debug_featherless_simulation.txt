@@ -1,0 +1,71 @@
+# Debug & Verification: Featherless AI Simulator, Curriculum Progression & Student Thinking
+
+This document details the functionality, test scenarios, and debugging instructions for the Featherless AI Tutor Simulation, the curriculum-based learning progression, and the student thinking/pattern analysis process.
+
+## Features Implemented
+
+1. **Curriculum Training Stages (100 Questions on Math, Puzzles, and Trick Questions)**
+   - **Teaching Stage (Taught One-by-One):**
+     - Generates 100 random questions across Mathematics, Puzzles, and Trick Questions.
+     - **General Concept Teaching vs. Specific Question Gating:** The tutor model generates a `lesson` detailing a general concept, rule, or method with a step-by-step example in brackets. It then asks a **different but related question** in the `question` key (using different parameters or values) to evaluate the student's ability to apply the concept.
+     - The student learns the **question**, the **lesson**, and the **answer**, storing them permanently in its biological brain components. Learning the question ensures that all question keywords are connected in memory to the thinking process.
+     - In this phase, the student replicates the correct answer directly to guarantee 100% correct responses.
+     - **note.txt Storage:** The Teacher model automatically records/appends the generated questions, lessons, and answers to `note.txt` to remember the batch.
+   - **Testing Stage (Pure Q&A without Lessons):**
+     - Runs through the exact same 100 questions from the current batch.
+     - The student is asked the question without a lesson and must answer using its learned memory (maxWords raised to 500 for infinite/unconstrained responses).
+     - **Strict 100% Evaluation and Re-testing:** The student must score exactly **100%** on the evaluation question. If the final score is less than `100` (e.g. `95` or `98`), the teacher presents the corresponding `lesson` to retrain the student, prints it in the UI/logs, and repeats the same question in the next cycle. In the backend, the student learns the lesson with high error-correction salience.
+     - Once all 100 questions are answered 100% correctly, the simulator transitions back to the Teaching Stage to generate a new set of 100 questions.
+
+2. **Stochastic Student Thinking & Grading (Verification Examples)**
+   - The student agent generates its own thinking process stochastically before answering the question.
+   - **Question-Specific Seed Gating:** It runs the Markov chain generation starting with a seed word extracted **exclusively from the current question's keywords** (ignoring stop words and keeping numbers/terms of length >= 1) at a temperature of `0.3`. This prevents the student from thinking about the lesson's demonstration numbers and ensures the generated thoughts target the active question.
+   - Wraps the generated thinking stochastically in a `[Thinking: <stochastic_thought>]` bracket before appending the generated or mirrored answer. This prevents verbatim copying of the teacher's lesson thinking, and demonstrates real stochastic memory recall.
+   - **Tutor Thinking Evaluation (Verification Example Rubric):**
+     - The Featherless AI tutor evaluates the student's `[Thinking: ...]` block alongside the final answer.
+     - The tutor evaluates whether the student's thinking process explicitly formulates and calculates its own step-by-step example (applying the general rule to the specific numbers/concepts in the current question to verify if the answer is correct).
+     - If the student fails to do so, it is graded below 95% (failing).
+     - In the JSON response, the tutor provides `thinking_score` and `thinking_rating` grading the student's thinking process, `feedback_to_improve` constructively instructing how to improve the thinking quality, and outputs `improved_thinking` containing the **Improved Thinking** pattern (e.g., `[Thinking: Example check: to verify 43+28, 40+20=60 and 3+8=11, which gives 71. This example verifies the answer.] The correct answer is 71.`).
+     - The student agent immediately learns the `improved_thinking` statement (storing the corrected thinking and answer transitions in its memory database) to copy and mimic the tutor's thinking style.
+   - **Re-test Correction Gating:**
+     - If the student answers incorrectly in the testing phase, the teacher re-teaches the lesson.
+     - On the next cycle (the re-test of the same question), the student generates its own stochastic thinking (striving to formulate its own example) but answers the question based directly on the lesson's correct answer (`m_isReTest` flag active) to guarantee 100% correctness, enabling progression.
+
+3. **Permanent Learning Persistence (Auto-Save)**
+   - All manual/chat learning and simulator-based learning are saved permanently to `agent_memory.txt` on disk immediately (`m_agent.save()`) on every learn event.
+
+4. **Teacher Model Erasing & Auto-Reset on Start**
+   - Manual UI buttons for "RESET" and "Erase Memory Now" have been completely removed to prevent manual user manipulation of memory.
+   - Starting the simulation automatically clears the student's cognitive memory and wipes the learning curve history so the session starts fresh.
+   - Resets and cleans the `note.txt` file for the new batch run.
+
+5. **Crash-Free Simulation Stopping**
+   - Resolved a synchronous re-entrancy crash during `stopSimulation()`.
+
+---
+
+## Manual Verification Steps
+
+1. Run the application:
+   ```powershell
+   ./build/appAitrainer.exe
+   ```
+2. Navigate to the **AI Teacher Simulator** tab on the right.
+3. Verify that the default API key is loaded.
+4. Click **Start Simulator**.
+5. Observe the following behavior:
+   - A system message appears: `Curriculum training simulation started.`
+   - Check the local directory; `note.txt` has been created.
+   - **Teaching Phase:** Questions 1 to 100 are generated one by one. The logs print `[Curriculum]: Teaching Stage - Generating Question X/100 (Subject)`. Here, the Subject will randomly cycle between **Mathematics**, **Puzzles**, and **Trick Questions**.
+   - The student stochastically generates a `[Thinking: ...]` bracket using its Markov memory (e.g. spelling or arithmetic terms it learned) and appends the 100% correct answer.
+   - Open `note.txt` to see the questions, lessons, and answers recorded.
+   - **Testing Phase:** Once 100 questions are generated, the log prints `Transitioning to Phase: Testing Stage (Pure Q&A without Lessons)`.
+   - The student stochastically generates BOTH the thinking bracket and the answer from memory.
+   - The tutor evaluates both. The feedback log outputs rating scores, ratings, and feedback to improve specifically targeting the student's thinking process.
+   - The student learns the tutor's corrected thinking logic and stochastically copies it on future trials.
+   - If the student answers incorrectly (score < 100), the log shows:
+     `[Correction/Re-teach]: <lesson_text>`
+     The teacher prints the lesson statement. It re-tests the student on the same question.
+   - On the re-test turn, the student uses the lesson's answer to guarantee 100% correctness and progress, while still formulating its own example in thinking.
+   - Once all 100% correct, the simulator resets to generate the next 100 questions.
+6. Click **Stop Simulator** during active requests. Verify that the simulator stops cleanly and does not crash the application.

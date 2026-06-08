@@ -1,0 +1,6 @@
+module Aitrainer
+typeinfo appAitrainer.qmltypes
+prefer :/qt/qml/Aitrainer/
+Main 254.0 Main.qml
+depends QtQuick
+

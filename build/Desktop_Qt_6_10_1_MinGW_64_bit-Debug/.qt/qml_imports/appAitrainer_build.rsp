@@ -1,0 +1,14 @@
+-rootPath
+C:/QTapp/Aitrainer
+-cmake-output
+-output-file
+C:/QTapp/Aitrainer/build/Desktop_Qt_6_10_1_MinGW_64_bit-Debug/.qt/qml_imports/appAitrainer_build.cmake
+-importPath
+C:/QTapp/Aitrainer/build/Desktop_Qt_6_10_1_MinGW_64_bit-Debug/Aitrainer
+-importPath
+C:/QTapp/Aitrainer/build/Desktop_Qt_6_10_1_MinGW_64_bit-Debug
+-importPath
+C:/Qt/6.10.1/mingw_64/qml
+-qrcFiles
+C:/QTapp/Aitrainer/build/Desktop_Qt_6_10_1_MinGW_64_bit-Debug/.qt/rcc/qmake_Aitrainer.qrc
+C:/QTapp/Aitrainer/build/Desktop_Qt_6_10_1_MinGW_64_bit-Debug/.qt/rcc/appAitrainer_raw_qml_0.qrc

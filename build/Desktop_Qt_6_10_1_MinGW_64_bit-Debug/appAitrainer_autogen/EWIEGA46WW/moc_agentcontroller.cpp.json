@@ -1,0 +1,601 @@
+{
+    "classes": [
+        {
+            "className": "AgentController",
+            "lineNumber": 14,
+            "methods": [
+                {
+                    "access": "public",
+                    "arguments": [
+                        {
+                            "name": "input",
+                            "type": "QString"
+                        }
+                    ],
+                    "index": 14,
+                    "lineNumber": 165,
+                    "name": "learnAndRespond",
+                    "returnType": "QString"
+                },
+                {
+                    "access": "public",
+                    "index": 15,
+                    "lineNumber": 166,
+                    "name": "saveMemory",
+                    "returnType": "bool"
+                },
+                {
+                    "access": "public",
+                    "index": 16,
+                    "lineNumber": 167,
+                    "name": "loadMemory",
+                    "returnType": "bool"
+                },
+                {
+                    "access": "public",
+                    "index": 17,
+                    "lineNumber": 168,
+                    "name": "clearMemory",
+                    "returnType": "void"
+                },
+                {
+                    "access": "public",
+                    "arguments": [
+                        {
+                            "name": "trainingText",
+                            "type": "QString"
+                        },
+                        {
+                            "name": "epochs",
+                            "type": "int"
+                        }
+                    ],
+                    "index": 18,
+                    "lineNumber": 169,
+                    "name": "trainLoraFromText",
+                    "returnType": "QString"
+                },
+                {
+                    "access": "public",
+                    "arguments": [
+                        {
+                            "name": "trainingText",
+                            "type": "QString"
+                        }
+                    ],
+                    "index": 19,
+                    "isCloned": true,
+                    "lineNumber": 169,
+                    "name": "trainLoraFromText",
+                    "returnType": "QString"
+                },
+                {
+                    "access": "public",
+                    "arguments": [
+                        {
+                            "name": "datasetUrl",
+                            "type": "QString"
+                        },
+                        {
+                            "name": "epochs",
+                            "type": "int"
+                        }
+                    ],
+                    "index": 20,
+                    "lineNumber": 170,
+                    "name": "trainLoraFromDatasetUrl",
+                    "returnType": "QString"
+                },
+                {
+                    "access": "public",
+                    "arguments": [
+                        {
+                            "name": "datasetUrl",
+                            "type": "QString"
+                        }
+                    ],
+                    "index": 21,
+                    "isCloned": true,
+                    "lineNumber": 170,
+                    "name": "trainLoraFromDatasetUrl",
+                    "returnType": "QString"
+                },
+                {
+                    "access": "public",
+                    "arguments": [
+                        {
+                            "name": "filePath",
+                            "type": "QString"
+                        }
+                    ],
+                    "index": 22,
+                    "lineNumber": 171,
+                    "name": "exportAgentPackage",
+                    "returnType": "QString"
+                },
+                {
+                    "access": "public",
+                    "arguments": [
+                        {
+                            "name": "filePath",
+                            "type": "QString"
+                        }
+                    ],
+                    "index": 23,
+                    "lineNumber": 172,
+                    "name": "importAgentPackage",
+                    "returnType": "QString"
+                },
+                {
+                    "access": "public",
+                    "index": 24,
+                    "isConst": true,
+                    "lineNumber": 173,
+                    "name": "agentFilesSummary",
+                    "returnType": "QString"
+                },
+                {
+                    "access": "public",
+                    "index": 25,
+                    "isConst": true,
+                    "lineNumber": 174,
+                    "name": "loraTrainingSummary",
+                    "returnType": "QString"
+                },
+                {
+                    "access": "public",
+                    "arguments": [
+                        {
+                            "name": "word",
+                            "type": "QString"
+                        }
+                    ],
+                    "index": 26,
+                    "isConst": true,
+                    "lineNumber": 177,
+                    "name": "getAssociationsForWord",
+                    "returnType": "QVariantList"
+                },
+                {
+                    "access": "public",
+                    "arguments": [
+                        {
+                            "name": "limit",
+                            "type": "int"
+                        }
+                    ],
+                    "index": 27,
+                    "isConst": true,
+                    "lineNumber": 178,
+                    "name": "getTopAssociations",
+                    "returnType": "QVariantList"
+                },
+                {
+                    "access": "public",
+                    "arguments": [
+                        {
+                            "name": "topic",
+                            "type": "QString"
+                        },
+                        {
+                            "name": "turns",
+                            "type": "int"
+                        }
+                    ],
+                    "index": 28,
+                    "lineNumber": 181,
+                    "name": "startSimulation",
+                    "returnType": "void"
+                },
+                {
+                    "access": "public",
+                    "index": 29,
+                    "lineNumber": 182,
+                    "name": "stopSimulation",
+                    "returnType": "void"
+                },
+                {
+                    "access": "public",
+                    "index": 30,
+                    "lineNumber": 183,
+                    "name": "clearTestScores",
+                    "returnType": "void"
+                }
+            ],
+            "object": true,
+            "properties": [
+                {
+                    "constant": false,
+                    "designable": true,
+                    "final": false,
+                    "index": 0,
+                    "lineNumber": 18,
+                    "name": "databasePath",
+                    "notify": "databasePathChanged",
+                    "read": "databasePath",
+                    "required": false,
+                    "scriptable": true,
+                    "stored": true,
+                    "type": "QString",
+                    "user": false,
+                    "write": "setDatabasePath"
+                },
+                {
+                    "constant": false,
+                    "designable": true,
+                    "final": false,
+                    "index": 1,
+                    "lineNumber": 19,
+                    "name": "vocabularySize",
+                    "notify": "memoryChanged",
+                    "read": "vocabularySize",
+                    "required": false,
+                    "scriptable": true,
+                    "stored": true,
+                    "type": "int",
+                    "user": false
+                },
+                {
+                    "constant": false,
+                    "designable": true,
+                    "final": false,
+                    "index": 2,
+                    "lineNumber": 20,
+                    "name": "totalAssociations",
+                    "notify": "memoryChanged",
+                    "read": "totalAssociations",
+                    "required": false,
+                    "scriptable": true,
+                    "stored": true,
+                    "type": "int",
+                    "user": false
+                },
+                {
+                    "constant": false,
+                    "designable": true,
+                    "final": false,
+                    "index": 3,
+                    "lineNumber": 21,
+                    "name": "temperature",
+                    "notify": "temperatureChanged",
+                    "read": "temperature",
+                    "required": false,
+                    "scriptable": true,
+                    "stored": true,
+                    "type": "double",
+                    "user": false,
+                    "write": "setTemperature"
+                },
+                {
+                    "constant": false,
+                    "designable": true,
+                    "final": false,
+                    "index": 4,
+                    "lineNumber": 22,
+                    "name": "learningEnabled",
+                    "notify": "learningEnabledChanged",
+                    "read": "learningEnabled",
+                    "required": false,
+                    "scriptable": true,
+                    "stored": true,
+                    "type": "bool",
+                    "user": false,
+                    "write": "setLearningEnabled"
+                },
+                {
+                    "constant": false,
+                    "designable": true,
+                    "final": false,
+                    "index": 5,
+                    "lineNumber": 23,
+                    "name": "contextWindow",
+                    "notify": "contextWindowChanged",
+                    "read": "contextWindow",
+                    "required": false,
+                    "scriptable": true,
+                    "stored": true,
+                    "type": "int",
+                    "user": false,
+                    "write": "setContextWindow"
+                },
+                {
+                    "constant": false,
+                    "designable": true,
+                    "final": false,
+                    "index": 6,
+                    "lineNumber": 26,
+                    "name": "featherlessApiKey",
+                    "notify": "featherlessApiKeyChanged",
+                    "read": "featherlessApiKey",
+                    "required": false,
+                    "scriptable": true,
+                    "stored": true,
+                    "type": "QString",
+                    "user": false,
+                    "write": "setFeatherlessApiKey"
+                },
+                {
+                    "constant": false,
+                    "designable": true,
+                    "final": false,
+                    "index": 7,
+                    "lineNumber": 27,
+                    "name": "teacherModel",
+                    "notify": "teacherModelChanged",
+                    "read": "teacherModel",
+                    "required": false,
+                    "scriptable": true,
+                    "stored": true,
+                    "type": "QString",
+                    "user": false,
+                    "write": "setTeacherModel"
+                },
+                {
+                    "constant": false,
+                    "designable": true,
+                    "final": false,
+                    "index": 8,
+                    "lineNumber": 28,
+                    "name": "isSimulationRunning",
+                    "notify": "simulationStatusChanged",
+                    "read": "isSimulationRunning",
+                    "required": false,
+                    "scriptable": true,
+                    "stored": true,
+                    "type": "bool",
+                    "user": false
+                },
+                {
+                    "constant": false,
+                    "designable": true,
+                    "final": false,
+                    "index": 9,
+                    "lineNumber": 29,
+                    "name": "simulationTopic",
+                    "notify": "simulationStatusChanged",
+                    "read": "simulationTopic",
+                    "required": false,
+                    "scriptable": true,
+                    "stored": true,
+                    "type": "QString",
+                    "user": false
+                },
+                {
+                    "constant": false,
+                    "designable": true,
+                    "final": false,
+                    "index": 10,
+                    "lineNumber": 30,
+                    "name": "simulationTurns",
+                    "notify": "simulationStatusChanged",
+                    "read": "simulationTurns",
+                    "required": false,
+                    "scriptable": true,
+                    "stored": true,
+                    "type": "int",
+                    "user": false
+                },
+                {
+                    "constant": false,
+                    "designable": true,
+                    "final": false,
+                    "index": 11,
+                    "lineNumber": 31,
+                    "name": "simulationCurrentTurn",
+                    "notify": "simulationStatusChanged",
+                    "read": "simulationCurrentTurn",
+                    "required": false,
+                    "scriptable": true,
+                    "stored": true,
+                    "type": "int",
+                    "user": false
+                },
+                {
+                    "constant": false,
+                    "designable": true,
+                    "final": false,
+                    "index": 12,
+                    "lineNumber": 32,
+                    "name": "simulationLog",
+                    "notify": "simulationLogChanged",
+                    "read": "simulationLog",
+                    "required": false,
+                    "scriptable": true,
+                    "stored": true,
+                    "type": "QString",
+                    "user": false
+                },
+                {
+                    "constant": false,
+                    "designable": true,
+                    "final": false,
+                    "index": 13,
+                    "lineNumber": 33,
+                    "name": "simulationDelay",
+                    "notify": "simulationDelayChanged",
+                    "read": "simulationDelay",
+                    "required": false,
+                    "scriptable": true,
+                    "stored": true,
+                    "type": "int",
+                    "user": false,
+                    "write": "setSimulationDelay"
+                },
+                {
+                    "constant": false,
+                    "designable": true,
+                    "final": false,
+                    "index": 14,
+                    "lineNumber": 36,
+                    "name": "testScores",
+                    "notify": "testScoresChanged",
+                    "read": "testScores",
+                    "required": false,
+                    "scriptable": true,
+                    "stored": true,
+                    "type": "QVariantList",
+                    "user": false
+                },
+                {
+                    "constant": false,
+                    "designable": true,
+                    "final": false,
+                    "index": 15,
+                    "lineNumber": 37,
+                    "name": "lastTestResult",
+                    "notify": "lastTestResultChanged",
+                    "read": "lastTestResult",
+                    "required": false,
+                    "scriptable": true,
+                    "stored": true,
+                    "type": "QVariantMap",
+                    "user": false
+                },
+                {
+                    "constant": false,
+                    "designable": true,
+                    "final": false,
+                    "index": 16,
+                    "lineNumber": 38,
+                    "name": "isTestingPhase",
+                    "notify": "simulationStatusChanged",
+                    "read": "isTestingPhase",
+                    "required": false,
+                    "scriptable": true,
+                    "stored": true,
+                    "type": "bool",
+                    "user": false
+                }
+            ],
+            "qualifiedClassName": "AgentController",
+            "signals": [
+                {
+                    "access": "public",
+                    "index": 0,
+                    "lineNumber": 186,
+                    "name": "databasePathChanged",
+                    "returnType": "void"
+                },
+                {
+                    "access": "public",
+                    "index": 1,
+                    "lineNumber": 187,
+                    "name": "memoryChanged",
+                    "returnType": "void"
+                },
+                {
+                    "access": "public",
+                    "index": 2,
+                    "lineNumber": 188,
+                    "name": "temperatureChanged",
+                    "returnType": "void"
+                },
+                {
+                    "access": "public",
+                    "index": 3,
+                    "lineNumber": 189,
+                    "name": "learningEnabledChanged",
+                    "returnType": "void"
+                },
+                {
+                    "access": "public",
+                    "index": 4,
+                    "lineNumber": 190,
+                    "name": "contextWindowChanged",
+                    "returnType": "void"
+                },
+                {
+                    "access": "public",
+                    "arguments": [
+                        {
+                            "name": "prompt",
+                            "type": "QString"
+                        },
+                        {
+                            "name": "response",
+                            "type": "QString"
+                        }
+                    ],
+                    "index": 5,
+                    "lineNumber": 191,
+                    "name": "responseGenerated",
+                    "returnType": "void"
+                },
+                {
+                    "access": "public",
+                    "index": 6,
+                    "lineNumber": 194,
+                    "name": "featherlessApiKeyChanged",
+                    "returnType": "void"
+                },
+                {
+                    "access": "public",
+                    "index": 7,
+                    "lineNumber": 195,
+                    "name": "teacherModelChanged",
+                    "returnType": "void"
+                },
+                {
+                    "access": "public",
+                    "index": 8,
+                    "lineNumber": 196,
+                    "name": "simulationStatusChanged",
+                    "returnType": "void"
+                },
+                {
+                    "access": "public",
+                    "index": 9,
+                    "lineNumber": 197,
+                    "name": "simulationLogChanged",
+                    "returnType": "void"
+                },
+                {
+                    "access": "public",
+                    "index": 10,
+                    "lineNumber": 198,
+                    "name": "simulationDelayChanged",
+                    "returnType": "void"
+                },
+                {
+                    "access": "public",
+                    "index": 11,
+                    "lineNumber": 201,
+                    "name": "testScoresChanged",
+                    "returnType": "void"
+                },
+                {
+                    "access": "public",
+                    "index": 12,
+                    "lineNumber": 202,
+                    "name": "lastTestResultChanged",
+                    "returnType": "void"
+                },
+                {
+                    "access": "public",
+                    "arguments": [
+                        {
+                            "name": "sender",
+                            "type": "QString"
+                        },
+                        {
+                            "name": "text",
+                            "type": "QString"
+                        }
+                    ],
+                    "index": 13,
+                    "lineNumber": 203,
+                    "name": "simulationMessageAdded",
+                    "returnType": "void"
+                }
+            ],
+            "superClasses": [
+                {
+                    "access": "public",
+                    "name": "QObject"
+                }
+            ]
+        }
+    ],
+    "inputFile": "agentcontroller.h",
+    "outputRevision": 69
+}

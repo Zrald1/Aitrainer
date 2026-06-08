@@ -1,0 +1,8 @@
+Question 1: Translate this sentence into an equation: 'Twice a number minus three is equal to eleven.' What is the equation?
+Lesson: When writing equations from word problems, identify the unknown quantity and assign it a variable. Then translate the relationships described in words into mathematical operations. For example, 'A number increased by 5 is 12' becomes x + 5 = 12. [Thinking: Verify by checking that the operation matches the wording: 'increased by' means addition, so x + 5 = 12 is correct.]
+Answer: 2x - 3 = 11
+----------------------------------------
+Question 2: Translate this sentence into an equation: 'The sum of a number and 14 equals twenty-three.' What is the equation?
+Lesson: Writing equations involves translating a verbal sentence into a mathematical statement that uses an equals sign to show two expressions are equal. A key concept is identifying the operation and unknown quantity from words like 'sum', 'difference', 'product', or 'quotient'. For example, the phrase 'the product of a number and 7 is 35' translates to 7x = 35. [Thinking: Check by substituting x=5 gives 7*5=35, so the equation is correct.]
+Answer: x + 14 = 23
+----------------------------------------

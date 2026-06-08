@@ -1,0 +1,10 @@
+--bare
+-I
+C:/QTapp/Aitrainer/build
+-I
+C:/Qt/6.10.1/mingw_64/qml
+--resource
+C:/QTapp/Aitrainer/build/.qt/rcc/qmake_Aitrainer.qrc
+--resource
+C:/QTapp/Aitrainer/build/.qt/rcc/appAitrainer_raw_qml_0.qrc
+C:/QTapp/Aitrainer/Main.qml

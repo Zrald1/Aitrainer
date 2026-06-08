@@ -1,0 +1,6 @@
+<RCC>
+  <qresource prefix="/">
+    <file alias="/qt/qml/Aitrainer">C:/QTapp/Aitrainer/build/Aitrainer</file>
+
+  </qresource>
+</RCC>

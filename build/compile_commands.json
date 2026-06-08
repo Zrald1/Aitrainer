@@ -1,0 +1,110 @@
+[
+{
+  "directory": "C:/QTapp/Aitrainer/build",
+  "command": "C:\\Qt\\Tools\\mingw1310_64\\bin\\c++.exe -DMINGW_HAS_SECURE_API=1 -DQT_CORE_LIB -DQT_GUI_LIB -DQT_NEEDS_QMAIN -DQT_NETWORK_LIB -DQT_OPENGL_LIB -DQT_QMLINTEGRATION_LIB -DQT_QML_LIB -DQT_QUICK_LIB -DUNICODE -DWIN32 -DWIN64 -D_ENABLE_EXTENDED_ALIGNED_STORAGE -D_UNICODE -D_WIN64 -IC:/QTapp/Aitrainer/build/appAitrainer_autogen/include -IC:/QTapp/Aitrainer -isystem C:/Qt/6.10.1/mingw_64/include/QtQml -isystem C:/Qt/6.10.1/mingw_64/include -isystem C:/Qt/6.10.1/mingw_64/include/QtCore -isystem C:/Qt/6.10.1/mingw_64/mkspecs/win32-g++ -isystem C:/Qt/6.10.1/mingw_64/include/QtQmlIntegration -isystem C:/Qt/6.10.1/mingw_64/include/QtNetwork -isystem C:/Qt/6.10.1/mingw_64/include/QtQuick -isystem C:/Qt/6.10.1/mingw_64/include/QtGui -isystem C:/Qt/6.10.1/mingw_64/include/QtOpenGL -g -o CMakeFiles\\appAitrainer.dir\\appAitrainer_autogen\\mocs_compilation.cpp.obj -c C:\\QTapp\\Aitrainer\\build\\appAitrainer_autogen\\mocs_compilation.cpp",
+  "file": "C:/QTapp/Aitrainer/build/appAitrainer_autogen/mocs_compilation.cpp",
+  "output": "C:/QTapp/Aitrainer/build/CMakeFiles/appAitrainer.dir/appAitrainer_autogen/mocs_compilation.cpp.obj"
+},
+{
+  "directory": "C:/QTapp/Aitrainer/build",
+  "command": "C:\\Qt\\Tools\\mingw1310_64\\bin\\c++.exe -DMINGW_HAS_SECURE_API=1 -DQT_CORE_LIB -DQT_GUI_LIB -DQT_NEEDS_QMAIN -DQT_NETWORK_LIB -DQT_OPENGL_LIB -DQT_QMLINTEGRATION_LIB -DQT_QML_LIB -DQT_QUICK_LIB -DUNICODE -DWIN32 -DWIN64 -D_ENABLE_EXTENDED_ALIGNED_STORAGE -D_UNICODE -D_WIN64 -IC:/QTapp/Aitrainer/build/appAitrainer_autogen/include -IC:/QTapp/Aitrainer -isystem C:/Qt/6.10.1/mingw_64/include/QtQml -isystem C:/Qt/6.10.1/mingw_64/include -isystem C:/Qt/6.10.1/mingw_64/include/QtCore -isystem C:/Qt/6.10.1/mingw_64/mkspecs/win32-g++ -isystem C:/Qt/6.10.1/mingw_64/include/QtQmlIntegration -isystem C:/Qt/6.10.1/mingw_64/include/QtNetwork -isystem C:/Qt/6.10.1/mingw_64/include/QtQuick -isystem C:/Qt/6.10.1/mingw_64/include/QtGui -isystem C:/Qt/6.10.1/mingw_64/include/QtOpenGL -g -o CMakeFiles\\appAitrainer.dir\\main.cpp.obj -c C:\\QTapp\\Aitrainer\\main.cpp",
+  "file": "C:/QTapp/Aitrainer/main.cpp",
+  "output": "C:/QTapp/Aitrainer/build/CMakeFiles/appAitrainer.dir/main.cpp.obj"
+},
+{
+  "directory": "C:/QTapp/Aitrainer/build",
+  "command": "C:\\Qt\\Tools\\mingw1310_64\\bin\\c++.exe -DMINGW_HAS_SECURE_API=1 -DQT_CORE_LIB -DQT_GUI_LIB -DQT_NEEDS_QMAIN -DQT_NETWORK_LIB -DQT_OPENGL_LIB -DQT_QMLINTEGRATION_LIB -DQT_QML_LIB -DQT_QUICK_LIB -DUNICODE -DWIN32 -DWIN64 -D_ENABLE_EXTENDED_ALIGNED_STORAGE -D_UNICODE -D_WIN64 -IC:/QTapp/Aitrainer/build/appAitrainer_autogen/include -IC:/QTapp/Aitrainer -isystem C:/Qt/6.10.1/mingw_64/include/QtQml -isystem C:/Qt/6.10.1/mingw_64/include -isystem C:/Qt/6.10.1/mingw_64/include/QtCore -isystem C:/Qt/6.10.1/mingw_64/mkspecs/win32-g++ -isystem C:/Qt/6.10.1/mingw_64/include/QtQmlIntegration -isystem C:/Qt/6.10.1/mingw_64/include/QtNetwork -isystem C:/Qt/6.10.1/mingw_64/include/QtQuick -isystem C:/Qt/6.10.1/mingw_64/include/QtGui -isystem C:/Qt/6.10.1/mingw_64/include/QtOpenGL -g -o CMakeFiles\\appAitrainer.dir\\learningagent.cpp.obj -c C:\\QTapp\\Aitrainer\\learningagent.cpp",
+  "file": "C:/QTapp/Aitrainer/learningagent.cpp",
+  "output": "C:/QTapp/Aitrainer/build/CMakeFiles/appAitrainer.dir/learningagent.cpp.obj"
+},
+{
+  "directory": "C:/QTapp/Aitrainer/build",
+  "command": "C:\\Qt\\Tools\\mingw1310_64\\bin\\c++.exe -DMINGW_HAS_SECURE_API=1 -DQT_CORE_LIB -DQT_GUI_LIB -DQT_NEEDS_QMAIN -DQT_NETWORK_LIB -DQT_OPENGL_LIB -DQT_QMLINTEGRATION_LIB -DQT_QML_LIB -DQT_QUICK_LIB -DUNICODE -DWIN32 -DWIN64 -D_ENABLE_EXTENDED_ALIGNED_STORAGE -D_UNICODE -D_WIN64 -IC:/QTapp/Aitrainer/build/appAitrainer_autogen/include -IC:/QTapp/Aitrainer -isystem C:/Qt/6.10.1/mingw_64/include/QtQml -isystem C:/Qt/6.10.1/mingw_64/include -isystem C:/Qt/6.10.1/mingw_64/include/QtCore -isystem C:/Qt/6.10.1/mingw_64/mkspecs/win32-g++ -isystem C:/Qt/6.10.1/mingw_64/include/QtQmlIntegration -isystem C:/Qt/6.10.1/mingw_64/include/QtNetwork -isystem C:/Qt/6.10.1/mingw_64/include/QtQuick -isystem C:/Qt/6.10.1/mingw_64/include/QtGui -isystem C:/Qt/6.10.1/mingw_64/include/QtOpenGL -g -o CMakeFiles\\appAitrainer.dir\\loraadapter.cpp.obj -c C:\\QTapp\\Aitrainer\\loraadapter.cpp",
+  "file": "C:/QTapp/Aitrainer/loraadapter.cpp",
+  "output": "C:/QTapp/Aitrainer/build/CMakeFiles/appAitrainer.dir/loraadapter.cpp.obj"
+},
+{
+  "directory": "C:/QTapp/Aitrainer/build",
+  "command": "C:\\Qt\\Tools\\mingw1310_64\\bin\\c++.exe -DMINGW_HAS_SECURE_API=1 -DQT_CORE_LIB -DQT_GUI_LIB -DQT_NEEDS_QMAIN -DQT_NETWORK_LIB -DQT_OPENGL_LIB -DQT_QMLINTEGRATION_LIB -DQT_QML_LIB -DQT_QUICK_LIB -DUNICODE -DWIN32 -DWIN64 -D_ENABLE_EXTENDED_ALIGNED_STORAGE -D_UNICODE -D_WIN64 -IC:/QTapp/Aitrainer/build/appAitrainer_autogen/include -IC:/QTapp/Aitrainer -isystem C:/Qt/6.10.1/mingw_64/include/QtQml -isystem C:/Qt/6.10.1/mingw_64/include -isystem C:/Qt/6.10.1/mingw_64/include/QtCore -isystem C:/Qt/6.10.1/mingw_64/mkspecs/win32-g++ -isystem C:/Qt/6.10.1/mingw_64/include/QtQmlIntegration -isystem C:/Qt/6.10.1/mingw_64/include/QtNetwork -isystem C:/Qt/6.10.1/mingw_64/include/QtQuick -isystem C:/Qt/6.10.1/mingw_64/include/QtGui -isystem C:/Qt/6.10.1/mingw_64/include/QtOpenGL -g -o CMakeFiles\\appAitrainer.dir\\agentcontroller.cpp.obj -c C:\\QTapp\\Aitrainer\\agentcontroller.cpp",
+  "file": "C:/QTapp/Aitrainer/agentcontroller.cpp",
+  "output": "C:/QTapp/Aitrainer/build/CMakeFiles/appAitrainer.dir/agentcontroller.cpp.obj"
+},
+{
+  "directory": "C:/QTapp/Aitrainer/build",
+  "command": "C:\\Qt\\Tools\\mingw1310_64\\bin\\c++.exe -DMINGW_HAS_SECURE_API=1 -DQT_CORE_LIB -DQT_GUI_LIB -DQT_NEEDS_QMAIN -DQT_NETWORK_LIB -DQT_OPENGL_LIB -DQT_QMLINTEGRATION_LIB -DQT_QML_LIB -DQT_QUICK_LIB -DUNICODE -DWIN32 -DWIN64 -D_ENABLE_EXTENDED_ALIGNED_STORAGE -D_UNICODE -D_WIN64 -IC:/QTapp/Aitrainer/build/appAitrainer_autogen/include -IC:/QTapp/Aitrainer -isystem C:/Qt/6.10.1/mingw_64/include/QtQml -isystem C:/Qt/6.10.1/mingw_64/include -isystem C:/Qt/6.10.1/mingw_64/include/QtCore -isystem C:/Qt/6.10.1/mingw_64/mkspecs/win32-g++ -isystem C:/Qt/6.10.1/mingw_64/include/QtQmlIntegration -isystem C:/Qt/6.10.1/mingw_64/include/QtNetwork -isystem C:/Qt/6.10.1/mingw_64/include/QtQuick -isystem C:/Qt/6.10.1/mingw_64/include/QtGui -isystem C:/Qt/6.10.1/mingw_64/include/QtOpenGL -g -o CMakeFiles\\appAitrainer.dir\\Hippocampus.cpp.obj -c C:\\QTapp\\Aitrainer\\Hippocampus.cpp",
+  "file": "C:/QTapp/Aitrainer/Hippocampus.cpp",
+  "output": "C:/QTapp/Aitrainer/build/CMakeFiles/appAitrainer.dir/Hippocampus.cpp.obj"
+},
+{
+  "directory": "C:/QTapp/Aitrainer/build",
+  "command": "C:\\Qt\\Tools\\mingw1310_64\\bin\\c++.exe -DMINGW_HAS_SECURE_API=1 -DQT_CORE_LIB -DQT_GUI_LIB -DQT_NEEDS_QMAIN -DQT_NETWORK_LIB -DQT_OPENGL_LIB -DQT_QMLINTEGRATION_LIB -DQT_QML_LIB -DQT_QUICK_LIB -DUNICODE -DWIN32 -DWIN64 -D_ENABLE_EXTENDED_ALIGNED_STORAGE -D_UNICODE -D_WIN64 -IC:/QTapp/Aitrainer/build/appAitrainer_autogen/include -IC:/QTapp/Aitrainer -isystem C:/Qt/6.10.1/mingw_64/include/QtQml -isystem C:/Qt/6.10.1/mingw_64/include -isystem C:/Qt/6.10.1/mingw_64/include/QtCore -isystem C:/Qt/6.10.1/mingw_64/mkspecs/win32-g++ -isystem C:/Qt/6.10.1/mingw_64/include/QtQmlIntegration -isystem C:/Qt/6.10.1/mingw_64/include/QtNetwork -isystem C:/Qt/6.10.1/mingw_64/include/QtQuick -isystem C:/Qt/6.10.1/mingw_64/include/QtGui -isystem C:/Qt/6.10.1/mingw_64/include/QtOpenGL -g -o CMakeFiles\\appAitrainer.dir\\Amygdala.cpp.obj -c C:\\QTapp\\Aitrainer\\Amygdala.cpp",
+  "file": "C:/QTapp/Aitrainer/Amygdala.cpp",
+  "output": "C:/QTapp/Aitrainer/build/CMakeFiles/appAitrainer.dir/Amygdala.cpp.obj"
+},
+{
+  "directory": "C:/QTapp/Aitrainer/build",
+  "command": "C:\\Qt\\Tools\\mingw1310_64\\bin\\c++.exe -DMINGW_HAS_SECURE_API=1 -DQT_CORE_LIB -DQT_GUI_LIB -DQT_NEEDS_QMAIN -DQT_NETWORK_LIB -DQT_OPENGL_LIB -DQT_QMLINTEGRATION_LIB -DQT_QML_LIB -DQT_QUICK_LIB -DUNICODE -DWIN32 -DWIN64 -D_ENABLE_EXTENDED_ALIGNED_STORAGE -D_UNICODE -D_WIN64 -IC:/QTapp/Aitrainer/build/appAitrainer_autogen/include -IC:/QTapp/Aitrainer -isystem C:/Qt/6.10.1/mingw_64/include/QtQml -isystem C:/Qt/6.10.1/mingw_64/include -isystem C:/Qt/6.10.1/mingw_64/include/QtCore -isystem C:/Qt/6.10.1/mingw_64/mkspecs/win32-g++ -isystem C:/Qt/6.10.1/mingw_64/include/QtQmlIntegration -isystem C:/Qt/6.10.1/mingw_64/include/QtNetwork -isystem C:/Qt/6.10.1/mingw_64/include/QtQuick -isystem C:/Qt/6.10.1/mingw_64/include/QtGui -isystem C:/Qt/6.10.1/mingw_64/include/QtOpenGL -g -o CMakeFiles\\appAitrainer.dir\\Thalamus.cpp.obj -c C:\\QTapp\\Aitrainer\\Thalamus.cpp",
+  "file": "C:/QTapp/Aitrainer/Thalamus.cpp",
+  "output": "C:/QTapp/Aitrainer/build/CMakeFiles/appAitrainer.dir/Thalamus.cpp.obj"
+},
+{
+  "directory": "C:/QTapp/Aitrainer/build",
+  "command": "C:\\Qt\\Tools\\mingw1310_64\\bin\\c++.exe -DMINGW_HAS_SECURE_API=1 -DQT_CORE_LIB -DQT_GUI_LIB -DQT_NEEDS_QMAIN -DQT_NETWORK_LIB -DQT_OPENGL_LIB -DQT_QMLINTEGRATION_LIB -DQT_QML_LIB -DQT_QUICK_LIB -DUNICODE -DWIN32 -DWIN64 -D_ENABLE_EXTENDED_ALIGNED_STORAGE -D_UNICODE -D_WIN64 -IC:/QTapp/Aitrainer/build/appAitrainer_autogen/include -IC:/QTapp/Aitrainer -isystem C:/Qt/6.10.1/mingw_64/include/QtQml -isystem C:/Qt/6.10.1/mingw_64/include -isystem C:/Qt/6.10.1/mingw_64/include/QtCore -isystem C:/Qt/6.10.1/mingw_64/mkspecs/win32-g++ -isystem C:/Qt/6.10.1/mingw_64/include/QtQmlIntegration -isystem C:/Qt/6.10.1/mingw_64/include/QtNetwork -isystem C:/Qt/6.10.1/mingw_64/include/QtQuick -isystem C:/Qt/6.10.1/mingw_64/include/QtGui -isystem C:/Qt/6.10.1/mingw_64/include/QtOpenGL -g -o CMakeFiles\\appAitrainer.dir\\TemporalLobe.cpp.obj -c C:\\QTapp\\Aitrainer\\TemporalLobe.cpp",
+  "file": "C:/QTapp/Aitrainer/TemporalLobe.cpp",
+  "output": "C:/QTapp/Aitrainer/build/CMakeFiles/appAitrainer.dir/TemporalLobe.cpp.obj"
+},
+{
+  "directory": "C:/QTapp/Aitrainer/build",
+  "command": "C:\\Qt\\Tools\\mingw1310_64\\bin\\c++.exe -DMINGW_HAS_SECURE_API=1 -DQT_CORE_LIB -DQT_GUI_LIB -DQT_NEEDS_QMAIN -DQT_NETWORK_LIB -DQT_OPENGL_LIB -DQT_QMLINTEGRATION_LIB -DQT_QML_LIB -DQT_QUICK_LIB -DUNICODE -DWIN32 -DWIN64 -D_ENABLE_EXTENDED_ALIGNED_STORAGE -D_UNICODE -D_WIN64 -IC:/QTapp/Aitrainer/build/appAitrainer_autogen/include -IC:/QTapp/Aitrainer -isystem C:/Qt/6.10.1/mingw_64/include/QtQml -isystem C:/Qt/6.10.1/mingw_64/include -isystem C:/Qt/6.10.1/mingw_64/include/QtCore -isystem C:/Qt/6.10.1/mingw_64/mkspecs/win32-g++ -isystem C:/Qt/6.10.1/mingw_64/include/QtQmlIntegration -isystem C:/Qt/6.10.1/mingw_64/include/QtNetwork -isystem C:/Qt/6.10.1/mingw_64/include/QtQuick -isystem C:/Qt/6.10.1/mingw_64/include/QtGui -isystem C:/Qt/6.10.1/mingw_64/include/QtOpenGL -g -o CMakeFiles\\appAitrainer.dir\\Cerebellum.cpp.obj -c C:\\QTapp\\Aitrainer\\Cerebellum.cpp",
+  "file": "C:/QTapp/Aitrainer/Cerebellum.cpp",
+  "output": "C:/QTapp/Aitrainer/build/CMakeFiles/appAitrainer.dir/Cerebellum.cpp.obj"
+},
+{
+  "directory": "C:/QTapp/Aitrainer/build",
+  "command": "C:\\Qt\\Tools\\mingw1310_64\\bin\\c++.exe -DMINGW_HAS_SECURE_API=1 -DQT_CORE_LIB -DQT_GUI_LIB -DQT_NEEDS_QMAIN -DQT_NETWORK_LIB -DQT_OPENGL_LIB -DQT_QMLINTEGRATION_LIB -DQT_QML_LIB -DQT_QUICK_LIB -DUNICODE -DWIN32 -DWIN64 -D_ENABLE_EXTENDED_ALIGNED_STORAGE -D_UNICODE -D_WIN64 -IC:/QTapp/Aitrainer/build/appAitrainer_autogen/include -IC:/QTapp/Aitrainer -isystem C:/Qt/6.10.1/mingw_64/include/QtQml -isystem C:/Qt/6.10.1/mingw_64/include -isystem C:/Qt/6.10.1/mingw_64/include/QtCore -isystem C:/Qt/6.10.1/mingw_64/mkspecs/win32-g++ -isystem C:/Qt/6.10.1/mingw_64/include/QtQmlIntegration -isystem C:/Qt/6.10.1/mingw_64/include/QtNetwork -isystem C:/Qt/6.10.1/mingw_64/include/QtQuick -isystem C:/Qt/6.10.1/mingw_64/include/QtGui -isystem C:/Qt/6.10.1/mingw_64/include/QtOpenGL -g -o CMakeFiles\\appAitrainer.dir\\BasalGanglia.cpp.obj -c C:\\QTapp\\Aitrainer\\BasalGanglia.cpp",
+  "file": "C:/QTapp/Aitrainer/BasalGanglia.cpp",
+  "output": "C:/QTapp/Aitrainer/build/CMakeFiles/appAitrainer.dir/BasalGanglia.cpp.obj"
+},
+{
+  "directory": "C:/QTapp/Aitrainer/build",
+  "command": "C:\\Qt\\Tools\\mingw1310_64\\bin\\c++.exe -DMINGW_HAS_SECURE_API=1 -DQT_CORE_LIB -DQT_GUI_LIB -DQT_NEEDS_QMAIN -DQT_NETWORK_LIB -DQT_OPENGL_LIB -DQT_QMLINTEGRATION_LIB -DQT_QML_LIB -DQT_QUICK_LIB -DUNICODE -DWIN32 -DWIN64 -D_ENABLE_EXTENDED_ALIGNED_STORAGE -D_UNICODE -D_WIN64 -IC:/QTapp/Aitrainer/build/appAitrainer_autogen/include -IC:/QTapp/Aitrainer -isystem C:/Qt/6.10.1/mingw_64/include/QtQml -isystem C:/Qt/6.10.1/mingw_64/include -isystem C:/Qt/6.10.1/mingw_64/include/QtCore -isystem C:/Qt/6.10.1/mingw_64/mkspecs/win32-g++ -isystem C:/Qt/6.10.1/mingw_64/include/QtQmlIntegration -isystem C:/Qt/6.10.1/mingw_64/include/QtNetwork -isystem C:/Qt/6.10.1/mingw_64/include/QtQuick -isystem C:/Qt/6.10.1/mingw_64/include/QtGui -isystem C:/Qt/6.10.1/mingw_64/include/QtOpenGL -g -o CMakeFiles\\appAitrainer.dir\\FrontalLobe.cpp.obj -c C:\\QTapp\\Aitrainer\\FrontalLobe.cpp",
+  "file": "C:/QTapp/Aitrainer/FrontalLobe.cpp",
+  "output": "C:/QTapp/Aitrainer/build/CMakeFiles/appAitrainer.dir/FrontalLobe.cpp.obj"
+},
+{
+  "directory": "C:/QTapp/Aitrainer/build",
+  "command": "C:\\Qt\\Tools\\mingw1310_64\\bin\\c++.exe -DMINGW_HAS_SECURE_API=1 -DQT_CORE_LIB -DQT_GUI_LIB -DQT_NEEDS_QMAIN -DQT_NETWORK_LIB -DQT_OPENGL_LIB -DQT_QMLINTEGRATION_LIB -DQT_QML_LIB -DQT_QUICK_LIB -DUNICODE -DWIN32 -DWIN64 -D_ENABLE_EXTENDED_ALIGNED_STORAGE -D_UNICODE -D_WIN64 -IC:/QTapp/Aitrainer/build/appAitrainer_autogen/include -IC:/QTapp/Aitrainer -isystem C:/Qt/6.10.1/mingw_64/include/QtQml -isystem C:/Qt/6.10.1/mingw_64/include -isystem C:/Qt/6.10.1/mingw_64/include/QtCore -isystem C:/Qt/6.10.1/mingw_64/mkspecs/win32-g++ -isystem C:/Qt/6.10.1/mingw_64/include/QtQmlIntegration -isystem C:/Qt/6.10.1/mingw_64/include/QtNetwork -isystem C:/Qt/6.10.1/mingw_64/include/QtQuick -isystem C:/Qt/6.10.1/mingw_64/include/QtGui -isystem C:/Qt/6.10.1/mingw_64/include/QtOpenGL -g -o CMakeFiles\\appAitrainer.dir\\Brain.cpp.obj -c C:\\QTapp\\Aitrainer\\Brain.cpp",
+  "file": "C:/QTapp/Aitrainer/Brain.cpp",
+  "output": "C:/QTapp/Aitrainer/build/CMakeFiles/appAitrainer.dir/Brain.cpp.obj"
+},
+{
+  "directory": "C:/QTapp/Aitrainer/build",
+  "command": "C:\\Qt\\Tools\\mingw1310_64\\bin\\c++.exe -DMINGW_HAS_SECURE_API=1 -DQT_CORE_LIB -DQT_GUI_LIB -DQT_NEEDS_QMAIN -DQT_NETWORK_LIB -DQT_OPENGL_LIB -DQT_QMLINTEGRATION_LIB -DQT_QML_LIB -DQT_QUICK_LIB -DUNICODE -DWIN32 -DWIN64 -D_ENABLE_EXTENDED_ALIGNED_STORAGE -D_UNICODE -D_WIN64 -IC:/QTapp/Aitrainer/build/appAitrainer_autogen/include -IC:/QTapp/Aitrainer -isystem C:/Qt/6.10.1/mingw_64/include/QtQml -isystem C:/Qt/6.10.1/mingw_64/include -isystem C:/Qt/6.10.1/mingw_64/include/QtCore -isystem C:/Qt/6.10.1/mingw_64/mkspecs/win32-g++ -isystem C:/Qt/6.10.1/mingw_64/include/QtQmlIntegration -isystem C:/Qt/6.10.1/mingw_64/include/QtNetwork -isystem C:/Qt/6.10.1/mingw_64/include/QtQuick -isystem C:/Qt/6.10.1/mingw_64/include/QtGui -isystem C:/Qt/6.10.1/mingw_64/include/QtOpenGL -g -Wa,-mbig-obj -o CMakeFiles\\appAitrainer.dir\\appaitrainer_qmltyperegistrations.cpp.obj -c C:\\QTapp\\Aitrainer\\build\\appaitrainer_qmltyperegistrations.cpp",
+  "file": "C:/QTapp/Aitrainer/build/appaitrainer_qmltyperegistrations.cpp",
+  "output": "C:/QTapp/Aitrainer/build/CMakeFiles/appAitrainer.dir/appaitrainer_qmltyperegistrations.cpp.obj"
+},
+{
+  "directory": "C:/QTapp/Aitrainer/build",
+  "command": "C:\\Qt\\Tools\\mingw1310_64\\bin\\c++.exe -DMINGW_HAS_SECURE_API=1 -DQT_CORE_LIB -DQT_GUI_LIB -DQT_NEEDS_QMAIN -DQT_NETWORK_LIB -DQT_OPENGL_LIB -DQT_QMLINTEGRATION_LIB -DQT_QML_LIB -DQT_QUICK_LIB -DUNICODE -DWIN32 -DWIN64 -D_ENABLE_EXTENDED_ALIGNED_STORAGE -D_UNICODE -D_WIN64 -IC:/QTapp/Aitrainer/build/appAitrainer_autogen/include -IC:/QTapp/Aitrainer -isystem C:/Qt/6.10.1/mingw_64/include/QtQml -isystem C:/Qt/6.10.1/mingw_64/include -isystem C:/Qt/6.10.1/mingw_64/include/QtCore -isystem C:/Qt/6.10.1/mingw_64/mkspecs/win32-g++ -isystem C:/Qt/6.10.1/mingw_64/include/QtQmlIntegration -isystem C:/Qt/6.10.1/mingw_64/include/QtNetwork -isystem C:/Qt/6.10.1/mingw_64/include/QtQuick -isystem C:/Qt/6.10.1/mingw_64/include/QtGui -isystem C:/Qt/6.10.1/mingw_64/include/QtOpenGL -g -o CMakeFiles\\appAitrainer.dir\\build\\.qt\\rcc\\qrc_qmake_Aitrainer.cpp.obj -c C:\\QTapp\\Aitrainer\\build\\.qt\\rcc\\qrc_qmake_Aitrainer.cpp",
+  "file": "C:/QTapp/Aitrainer/build/.qt/rcc/qrc_qmake_Aitrainer.cpp",
+  "output": "C:/QTapp/Aitrainer/build/CMakeFiles/appAitrainer.dir/build/.qt/rcc/qrc_qmake_Aitrainer.cpp.obj"
+},
+{
+  "directory": "C:/QTapp/Aitrainer/build",
+  "command": "C:\\Qt\\Tools\\mingw1310_64\\bin\\c++.exe -DMINGW_HAS_SECURE_API=1 -DQT_CORE_LIB -DQT_GUI_LIB -DQT_NEEDS_QMAIN -DQT_NETWORK_LIB -DQT_OPENGL_LIB -DQT_QMLINTEGRATION_LIB -DQT_QML_LIB -DQT_QUICK_LIB -DUNICODE -DWIN32 -DWIN64 -D_ENABLE_EXTENDED_ALIGNED_STORAGE -D_UNICODE -D_WIN64 -IC:/QTapp/Aitrainer/build/appAitrainer_autogen/include -IC:/QTapp/Aitrainer -isystem C:/Qt/6.10.1/mingw_64/include/QtQml -isystem C:/Qt/6.10.1/mingw_64/include -isystem C:/Qt/6.10.1/mingw_64/include/QtCore -isystem C:/Qt/6.10.1/mingw_64/mkspecs/win32-g++ -isystem C:/Qt/6.10.1/mingw_64/include/QtQmlIntegration -isystem C:/Qt/6.10.1/mingw_64/include/QtNetwork -isystem C:/Qt/6.10.1/mingw_64/include/QtQuick -isystem C:/Qt/6.10.1/mingw_64/include/QtGui -isystem C:/Qt/6.10.1/mingw_64/include/QtOpenGL -g -o CMakeFiles\\appAitrainer.dir\\build\\.rcc\\qmlcache\\appAitrainer_qmlcache_loader.cpp.obj -c C:\\QTapp\\Aitrainer\\build\\.rcc\\qmlcache\\appAitrainer_qmlcache_loader.cpp",
+  "file": "C:/QTapp/Aitrainer/build/.rcc/qmlcache/appAitrainer_qmlcache_loader.cpp",
+  "output": "C:/QTapp/Aitrainer/build/CMakeFiles/appAitrainer.dir/build/.rcc/qmlcache/appAitrainer_qmlcache_loader.cpp.obj"
+},
+{
+  "directory": "C:/QTapp/Aitrainer/build",
+  "command": "C:\\Qt\\Tools\\mingw1310_64\\bin\\c++.exe -DMINGW_HAS_SECURE_API=1 -DQT_CORE_LIB -DQT_GUI_LIB -DQT_NEEDS_QMAIN -DQT_NETWORK_LIB -DQT_OPENGL_LIB -DQT_QMLINTEGRATION_LIB -DQT_QML_LIB -DQT_QUICK_LIB -DUNICODE -DWIN32 -DWIN64 -D_ENABLE_EXTENDED_ALIGNED_STORAGE -D_UNICODE -D_WIN64 -IC:/QTapp/Aitrainer/build/appAitrainer_autogen/include -IC:/QTapp/Aitrainer -isystem C:/Qt/6.10.1/mingw_64/include/QtQml -isystem C:/Qt/6.10.1/mingw_64/include -isystem C:/Qt/6.10.1/mingw_64/include/QtCore -isystem C:/Qt/6.10.1/mingw_64/mkspecs/win32-g++ -isystem C:/Qt/6.10.1/mingw_64/include/QtQmlIntegration -isystem C:/Qt/6.10.1/mingw_64/include/QtNetwork -isystem C:/Qt/6.10.1/mingw_64/include/QtQuick -isystem C:/Qt/6.10.1/mingw_64/include/QtGui -isystem C:/Qt/6.10.1/mingw_64/include/QtOpenGL -g -o CMakeFiles\\appAitrainer.dir\\build\\.rcc\\qmlcache\\appAitrainer_Main_qml.cpp.obj -c C:\\QTapp\\Aitrainer\\build\\.rcc\\qmlcache\\appAitrainer_Main_qml.cpp",
+  "file": "C:/QTapp/Aitrainer/build/.rcc/qmlcache/appAitrainer_Main_qml.cpp",
+  "output": "C:/QTapp/Aitrainer/build/CMakeFiles/appAitrainer.dir/build/.rcc/qmlcache/appAitrainer_Main_qml.cpp.obj"
+},
+{
+  "directory": "C:/QTapp/Aitrainer/build",
+  "command": "C:\\Qt\\Tools\\mingw1310_64\\bin\\c++.exe -DMINGW_HAS_SECURE_API=1 -DQT_CORE_LIB -DQT_GUI_LIB -DQT_NEEDS_QMAIN -DQT_NETWORK_LIB -DQT_OPENGL_LIB -DQT_QMLINTEGRATION_LIB -DQT_QML_LIB -DQT_QUICK_LIB -DUNICODE -DWIN32 -DWIN64 -D_ENABLE_EXTENDED_ALIGNED_STORAGE -D_UNICODE -D_WIN64 -IC:/QTapp/Aitrainer/build/appAitrainer_autogen/include -IC:/QTapp/Aitrainer -isystem C:/Qt/6.10.1/mingw_64/include/QtQml -isystem C:/Qt/6.10.1/mingw_64/include -isystem C:/Qt/6.10.1/mingw_64/include/QtCore -isystem C:/Qt/6.10.1/mingw_64/mkspecs/win32-g++ -isystem C:/Qt/6.10.1/mingw_64/include/QtQmlIntegration -isystem C:/Qt/6.10.1/mingw_64/include/QtNetwork -isystem C:/Qt/6.10.1/mingw_64/include/QtQuick -isystem C:/Qt/6.10.1/mingw_64/include/QtGui -isystem C:/Qt/6.10.1/mingw_64/include/QtOpenGL -g -o CMakeFiles\\appAitrainer.dir\\build\\.qt\\rcc\\qrc_appAitrainer_raw_qml_0.cpp.obj -c C:\\QTapp\\Aitrainer\\build\\.qt\\rcc\\qrc_appAitrainer_raw_qml_0.cpp",
+  "file": "C:/QTapp/Aitrainer/build/.qt/rcc/qrc_appAitrainer_raw_qml_0.cpp",
+  "output": "C:/QTapp/Aitrainer/build/CMakeFiles/appAitrainer.dir/build/.qt/rcc/qrc_appAitrainer_raw_qml_0.cpp.obj"
+}
+]
