@@ -25,6 +25,12 @@
 },
 {
   "directory": "C:/QTapp/Aitrainer/build",
+  "command": "C:\\Qt\\Tools\\mingw1310_64\\bin\\c++.exe -DAITRAINER_D3D11_GPU=1 -DMINGW_HAS_SECURE_API=1 -DQT_CORE_LIB -DQT_GUI_LIB -DQT_NEEDS_QMAIN -DQT_NETWORK_LIB -DQT_OPENGL_LIB -DQT_QMLINTEGRATION_LIB -DQT_QML_LIB -DQT_QUICK_LIB -DUNICODE -DWIN32 -DWIN64 -D_ENABLE_EXTENDED_ALIGNED_STORAGE -D_UNICODE -D_WIN64 -IC:/QTapp/Aitrainer/build/appAitrainer_autogen/include -IC:/QTapp/Aitrainer -isystem C:/Qt/6.10.1/mingw_64/include/QtQml -isystem C:/Qt/6.10.1/mingw_64/include -isystem C:/Qt/6.10.1/mingw_64/include/QtCore -isystem C:/Qt/6.10.1/mingw_64/mkspecs/win32-g++ -isystem C:/Qt/6.10.1/mingw_64/include/QtQmlIntegration -isystem C:/Qt/6.10.1/mingw_64/include/QtNetwork -isystem C:/Qt/6.10.1/mingw_64/include/QtQuick -isystem C:/Qt/6.10.1/mingw_64/include/QtGui -isystem C:/Qt/6.10.1/mingw_64/include/QtOpenGL -g -o CMakeFiles\\appAitrainer.dir\\LightweightTensorReasoner.cpp.obj -c C:\\QTapp\\Aitrainer\\LightweightTensorReasoner.cpp",
+  "file": "C:/QTapp/Aitrainer/LightweightTensorReasoner.cpp",
+  "output": "C:/QTapp/Aitrainer/build/CMakeFiles/appAitrainer.dir/LightweightTensorReasoner.cpp.obj"
+},
+{
+  "directory": "C:/QTapp/Aitrainer/build",
   "command": "C:\\Qt\\Tools\\mingw1310_64\\bin\\c++.exe -DAITRAINER_D3D11_GPU=1 -DMINGW_HAS_SECURE_API=1 -DQT_CORE_LIB -DQT_GUI_LIB -DQT_NEEDS_QMAIN -DQT_NETWORK_LIB -DQT_OPENGL_LIB -DQT_QMLINTEGRATION_LIB -DQT_QML_LIB -DQT_QUICK_LIB -DUNICODE -DWIN32 -DWIN64 -D_ENABLE_EXTENDED_ALIGNED_STORAGE -D_UNICODE -D_WIN64 -IC:/QTapp/Aitrainer/build/appAitrainer_autogen/include -IC:/QTapp/Aitrainer -isystem C:/Qt/6.10.1/mingw_64/include/QtQml -isystem C:/Qt/6.10.1/mingw_64/include -isystem C:/Qt/6.10.1/mingw_64/include/QtCore -isystem C:/Qt/6.10.1/mingw_64/mkspecs/win32-g++ -isystem C:/Qt/6.10.1/mingw_64/include/QtQmlIntegration -isystem C:/Qt/6.10.1/mingw_64/include/QtNetwork -isystem C:/Qt/6.10.1/mingw_64/include/QtQuick -isystem C:/Qt/6.10.1/mingw_64/include/QtGui -isystem C:/Qt/6.10.1/mingw_64/include/QtOpenGL -g -o CMakeFiles\\appAitrainer.dir\\agentcontroller.cpp.obj -c C:\\QTapp\\Aitrainer\\agentcontroller.cpp",
   "file": "C:/QTapp/Aitrainer/agentcontroller.cpp",
   "output": "C:/QTapp/Aitrainer/build/CMakeFiles/appAitrainer.dir/agentcontroller.cpp.obj"

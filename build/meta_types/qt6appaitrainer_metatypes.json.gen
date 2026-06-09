@@ -3,7 +3,7 @@
         "classes": [
             {
                 "className": "AgentController",
-                "lineNumber": 20,
+                "lineNumber": 21,
                 "methods": [
                     {
                         "access": "public",
@@ -14,28 +14,28 @@
                             }
                         ],
                         "index": 18,
-                        "lineNumber": 280,
+                        "lineNumber": 282,
                         "name": "learnAndRespond",
                         "returnType": "QString"
                     },
                     {
                         "access": "public",
                         "index": 19,
-                        "lineNumber": 281,
+                        "lineNumber": 283,
                         "name": "saveMemory",
                         "returnType": "bool"
                     },
                     {
                         "access": "public",
                         "index": 20,
-                        "lineNumber": 282,
+                        "lineNumber": 284,
                         "name": "loadMemory",
                         "returnType": "bool"
                     },
                     {
                         "access": "public",
                         "index": 21,
-                        "lineNumber": 283,
+                        "lineNumber": 285,
                         "name": "clearMemory",
                         "returnType": "void"
                     },
@@ -52,7 +52,7 @@
                             }
                         ],
                         "index": 22,
-                        "lineNumber": 284,
+                        "lineNumber": 286,
                         "name": "trainLoraFromText",
                         "returnType": "QString"
                     },
@@ -66,7 +66,7 @@
                         ],
                         "index": 23,
                         "isCloned": true,
-                        "lineNumber": 284,
+                        "lineNumber": 286,
                         "name": "trainLoraFromText",
                         "returnType": "QString"
                     },
@@ -83,7 +83,7 @@
                             }
                         ],
                         "index": 24,
-                        "lineNumber": 285,
+                        "lineNumber": 287,
                         "name": "trainLoraFromDatasetUrl",
                         "returnType": "QString"
                     },
@@ -97,7 +97,7 @@
                         ],
                         "index": 25,
                         "isCloned": true,
-                        "lineNumber": 285,
+                        "lineNumber": 287,
                         "name": "trainLoraFromDatasetUrl",
                         "returnType": "QString"
                     },
@@ -114,7 +114,7 @@
                             }
                         ],
                         "index": 26,
-                        "lineNumber": 286,
+                        "lineNumber": 288,
                         "name": "trainCurrentAgentOnGpuServer",
                         "returnType": "QString"
                     },
@@ -128,7 +128,7 @@
                         ],
                         "index": 27,
                         "isCloned": true,
-                        "lineNumber": 286,
+                        "lineNumber": 288,
                         "name": "trainCurrentAgentOnGpuServer",
                         "returnType": "QString"
                     },
@@ -141,7 +141,7 @@
                             }
                         ],
                         "index": 28,
-                        "lineNumber": 287,
+                        "lineNumber": 289,
                         "name": "exportAgentPackage",
                         "returnType": "QString"
                     },
@@ -154,7 +154,7 @@
                             }
                         ],
                         "index": 29,
-                        "lineNumber": 288,
+                        "lineNumber": 290,
                         "name": "importAgentPackage",
                         "returnType": "QString"
                     },
@@ -162,7 +162,7 @@
                         "access": "public",
                         "index": 30,
                         "isConst": true,
-                        "lineNumber": 289,
+                        "lineNumber": 291,
                         "name": "agentFilesSummary",
                         "returnType": "QString"
                     },
@@ -170,7 +170,7 @@
                         "access": "public",
                         "index": 31,
                         "isConst": true,
-                        "lineNumber": 290,
+                        "lineNumber": 292,
                         "name": "loraTrainingSummary",
                         "returnType": "QString"
                     },
@@ -184,7 +184,7 @@
                         ],
                         "index": 32,
                         "isConst": true,
-                        "lineNumber": 291,
+                        "lineNumber": 293,
                         "name": "copyTextToClipboard",
                         "returnType": "bool"
                     },
@@ -198,7 +198,7 @@
                         ],
                         "index": 33,
                         "isConst": true,
-                        "lineNumber": 294,
+                        "lineNumber": 296,
                         "name": "getAssociationsForWord",
                         "returnType": "QVariantList"
                     },
@@ -212,7 +212,7 @@
                         ],
                         "index": 34,
                         "isConst": true,
-                        "lineNumber": 295,
+                        "lineNumber": 297,
                         "name": "getTopAssociations",
                         "returnType": "QVariantList"
                     },
@@ -229,21 +229,21 @@
                             }
                         ],
                         "index": 35,
-                        "lineNumber": 298,
+                        "lineNumber": 300,
                         "name": "startSimulation",
                         "returnType": "void"
                     },
                     {
                         "access": "public",
                         "index": 36,
-                        "lineNumber": 299,
+                        "lineNumber": 301,
                         "name": "stopSimulation",
                         "returnType": "void"
                     },
                     {
                         "access": "public",
                         "index": 37,
-                        "lineNumber": 300,
+                        "lineNumber": 302,
                         "name": "clearTestScores",
                         "returnType": "void"
                     }
@@ -255,7 +255,7 @@
                         "designable": true,
                         "final": false,
                         "index": 0,
-                        "lineNumber": 24,
+                        "lineNumber": 25,
                         "name": "databasePath",
                         "notify": "databasePathChanged",
                         "read": "databasePath",
@@ -271,7 +271,7 @@
                         "designable": true,
                         "final": false,
                         "index": 1,
-                        "lineNumber": 25,
+                        "lineNumber": 26,
                         "name": "vocabularySize",
                         "notify": "memoryChanged",
                         "read": "vocabularySize",
@@ -286,7 +286,7 @@
                         "designable": true,
                         "final": false,
                         "index": 2,
-                        "lineNumber": 26,
+                        "lineNumber": 27,
                         "name": "totalAssociations",
                         "notify": "memoryChanged",
                         "read": "totalAssociations",
@@ -301,7 +301,7 @@
                         "designable": true,
                         "final": false,
                         "index": 3,
-                        "lineNumber": 27,
+                        "lineNumber": 28,
                         "name": "temperature",
                         "notify": "temperatureChanged",
                         "read": "temperature",
@@ -317,7 +317,7 @@
                         "designable": true,
                         "final": false,
                         "index": 4,
-                        "lineNumber": 28,
+                        "lineNumber": 29,
                         "name": "learningEnabled",
                         "notify": "learningEnabledChanged",
                         "read": "learningEnabled",
@@ -333,7 +333,7 @@
                         "designable": true,
                         "final": false,
                         "index": 5,
-                        "lineNumber": 29,
+                        "lineNumber": 30,
                         "name": "contextWindow",
                         "notify": "contextWindowChanged",
                         "read": "contextWindow",
@@ -349,7 +349,7 @@
                         "designable": true,
                         "final": false,
                         "index": 6,
-                        "lineNumber": 32,
+                        "lineNumber": 33,
                         "name": "featherlessApiKey",
                         "notify": "featherlessApiKeyChanged",
                         "read": "featherlessApiKey",
@@ -365,7 +365,7 @@
                         "designable": true,
                         "final": false,
                         "index": 7,
-                        "lineNumber": 33,
+                        "lineNumber": 34,
                         "name": "huggingFaceToken",
                         "notify": "huggingFaceTokenChanged",
                         "read": "huggingFaceToken",
@@ -381,7 +381,7 @@
                         "designable": true,
                         "final": false,
                         "index": 8,
-                        "lineNumber": 34,
+                        "lineNumber": 35,
                         "name": "teacherModel",
                         "notify": "teacherModelChanged",
                         "read": "teacherModel",
@@ -397,7 +397,7 @@
                         "designable": true,
                         "final": false,
                         "index": 9,
-                        "lineNumber": 35,
+                        "lineNumber": 36,
                         "name": "isSimulationRunning",
                         "notify": "simulationStatusChanged",
                         "read": "isSimulationRunning",
@@ -412,7 +412,7 @@
                         "designable": true,
                         "final": false,
                         "index": 10,
-                        "lineNumber": 36,
+                        "lineNumber": 37,
                         "name": "simulationTopic",
                         "notify": "simulationStatusChanged",
                         "read": "simulationTopic",
@@ -427,7 +427,7 @@
                         "designable": true,
                         "final": false,
                         "index": 11,
-                        "lineNumber": 37,
+                        "lineNumber": 38,
                         "name": "simulationTurns",
                         "notify": "simulationStatusChanged",
                         "read": "simulationTurns",
@@ -442,7 +442,7 @@
                         "designable": true,
                         "final": false,
                         "index": 12,
-                        "lineNumber": 38,
+                        "lineNumber": 39,
                         "name": "simulationCurrentTurn",
                         "notify": "simulationStatusChanged",
                         "read": "simulationCurrentTurn",
@@ -457,7 +457,7 @@
                         "designable": true,
                         "final": false,
                         "index": 13,
-                        "lineNumber": 39,
+                        "lineNumber": 40,
                         "name": "simulationLog",
                         "notify": "simulationLogChanged",
                         "read": "simulationLog",
@@ -472,7 +472,7 @@
                         "designable": true,
                         "final": false,
                         "index": 14,
-                        "lineNumber": 40,
+                        "lineNumber": 41,
                         "name": "simulationDelay",
                         "notify": "simulationDelayChanged",
                         "read": "simulationDelay",
@@ -488,7 +488,7 @@
                         "designable": true,
                         "final": false,
                         "index": 15,
-                        "lineNumber": 41,
+                        "lineNumber": 42,
                         "name": "gpuHost",
                         "notify": "gpuSettingsChanged",
                         "read": "gpuHost",
@@ -504,7 +504,7 @@
                         "designable": true,
                         "final": false,
                         "index": 16,
-                        "lineNumber": 42,
+                        "lineNumber": 43,
                         "name": "gpuSshPort",
                         "notify": "gpuSettingsChanged",
                         "read": "gpuSshPort",
@@ -520,7 +520,7 @@
                         "designable": true,
                         "final": false,
                         "index": 17,
-                        "lineNumber": 43,
+                        "lineNumber": 44,
                         "name": "gpuUsername",
                         "notify": "gpuSettingsChanged",
                         "read": "gpuUsername",
@@ -536,7 +536,7 @@
                         "designable": true,
                         "final": false,
                         "index": 18,
-                        "lineNumber": 44,
+                        "lineNumber": 45,
                         "name": "gpuSshKeyPath",
                         "notify": "gpuSettingsChanged",
                         "read": "gpuSshKeyPath",
@@ -552,7 +552,7 @@
                         "designable": true,
                         "final": false,
                         "index": 19,
-                        "lineNumber": 45,
+                        "lineNumber": 46,
                         "name": "gpuRemoteRoot",
                         "notify": "gpuSettingsChanged",
                         "read": "gpuRemoteRoot",
@@ -568,7 +568,7 @@
                         "designable": true,
                         "final": false,
                         "index": 20,
-                        "lineNumber": 46,
+                        "lineNumber": 47,
                         "name": "gpuMaxSamples",
                         "notify": "gpuSettingsChanged",
                         "read": "gpuMaxSamples",
@@ -584,7 +584,7 @@
                         "designable": true,
                         "final": false,
                         "index": 21,
-                        "lineNumber": 47,
+                        "lineNumber": 48,
                         "name": "isGpuTrainingRunning",
                         "notify": "gpuTrainingStatusChanged",
                         "read": "isGpuTrainingRunning",
@@ -599,7 +599,7 @@
                         "designable": true,
                         "final": false,
                         "index": 22,
-                        "lineNumber": 48,
+                        "lineNumber": 49,
                         "name": "gpuTrainingStatus",
                         "notify": "gpuTrainingStatusChanged",
                         "read": "gpuTrainingStatus",
@@ -614,7 +614,7 @@
                         "designable": true,
                         "final": false,
                         "index": 23,
-                        "lineNumber": 49,
+                        "lineNumber": 50,
                         "name": "useLocalGpuTraining",
                         "notify": "localGpuTrainingChanged",
                         "read": "useLocalGpuTraining",
@@ -630,7 +630,7 @@
                         "designable": true,
                         "final": false,
                         "index": 24,
-                        "lineNumber": 50,
+                        "lineNumber": 51,
                         "name": "isLocalGpuTrainingRunning",
                         "notify": "localGpuTrainingChanged",
                         "read": "isLocalGpuTrainingRunning",
@@ -645,7 +645,7 @@
                         "designable": true,
                         "final": false,
                         "index": 25,
-                        "lineNumber": 51,
+                        "lineNumber": 52,
                         "name": "localGpuTrainingStatus",
                         "notify": "localGpuTrainingChanged",
                         "read": "localGpuTrainingStatus",
@@ -660,7 +660,7 @@
                         "designable": true,
                         "final": false,
                         "index": 26,
-                        "lineNumber": 54,
+                        "lineNumber": 55,
                         "name": "testScores",
                         "notify": "testScoresChanged",
                         "read": "testScores",
@@ -675,7 +675,7 @@
                         "designable": true,
                         "final": false,
                         "index": 27,
-                        "lineNumber": 55,
+                        "lineNumber": 56,
                         "name": "lastTestResult",
                         "notify": "lastTestResultChanged",
                         "read": "lastTestResult",
@@ -690,7 +690,7 @@
                         "designable": true,
                         "final": false,
                         "index": 28,
-                        "lineNumber": 56,
+                        "lineNumber": 57,
                         "name": "isTestingPhase",
                         "notify": "simulationStatusChanged",
                         "read": "isTestingPhase",
@@ -706,35 +706,35 @@
                     {
                         "access": "public",
                         "index": 0,
-                        "lineNumber": 303,
+                        "lineNumber": 305,
                         "name": "databasePathChanged",
                         "returnType": "void"
                     },
                     {
                         "access": "public",
                         "index": 1,
-                        "lineNumber": 304,
+                        "lineNumber": 306,
                         "name": "memoryChanged",
                         "returnType": "void"
                     },
                     {
                         "access": "public",
                         "index": 2,
-                        "lineNumber": 305,
+                        "lineNumber": 307,
                         "name": "temperatureChanged",
                         "returnType": "void"
                     },
                     {
                         "access": "public",
                         "index": 3,
-                        "lineNumber": 306,
+                        "lineNumber": 308,
                         "name": "learningEnabledChanged",
                         "returnType": "void"
                     },
                     {
                         "access": "public",
                         "index": 4,
-                        "lineNumber": 307,
+                        "lineNumber": 309,
                         "name": "contextWindowChanged",
                         "returnType": "void"
                     },
@@ -751,84 +751,84 @@
                             }
                         ],
                         "index": 5,
-                        "lineNumber": 308,
+                        "lineNumber": 310,
                         "name": "responseGenerated",
                         "returnType": "void"
                     },
                     {
                         "access": "public",
                         "index": 6,
-                        "lineNumber": 311,
+                        "lineNumber": 313,
                         "name": "featherlessApiKeyChanged",
                         "returnType": "void"
                     },
                     {
                         "access": "public",
                         "index": 7,
-                        "lineNumber": 312,
+                        "lineNumber": 314,
                         "name": "huggingFaceTokenChanged",
                         "returnType": "void"
                     },
                     {
                         "access": "public",
                         "index": 8,
-                        "lineNumber": 313,
+                        "lineNumber": 315,
                         "name": "teacherModelChanged",
                         "returnType": "void"
                     },
                     {
                         "access": "public",
                         "index": 9,
-                        "lineNumber": 314,
+                        "lineNumber": 316,
                         "name": "simulationStatusChanged",
                         "returnType": "void"
                     },
                     {
                         "access": "public",
                         "index": 10,
-                        "lineNumber": 315,
+                        "lineNumber": 317,
                         "name": "simulationLogChanged",
                         "returnType": "void"
                     },
                     {
                         "access": "public",
                         "index": 11,
-                        "lineNumber": 316,
+                        "lineNumber": 318,
                         "name": "simulationDelayChanged",
                         "returnType": "void"
                     },
                     {
                         "access": "public",
                         "index": 12,
-                        "lineNumber": 317,
+                        "lineNumber": 319,
                         "name": "gpuSettingsChanged",
                         "returnType": "void"
                     },
                     {
                         "access": "public",
                         "index": 13,
-                        "lineNumber": 318,
+                        "lineNumber": 320,
                         "name": "gpuTrainingStatusChanged",
                         "returnType": "void"
                     },
                     {
                         "access": "public",
                         "index": 14,
-                        "lineNumber": 319,
+                        "lineNumber": 321,
                         "name": "localGpuTrainingChanged",
                         "returnType": "void"
                     },
                     {
                         "access": "public",
                         "index": 15,
-                        "lineNumber": 322,
+                        "lineNumber": 324,
                         "name": "testScoresChanged",
                         "returnType": "void"
                     },
                     {
                         "access": "public",
                         "index": 16,
-                        "lineNumber": 323,
+                        "lineNumber": 325,
                         "name": "lastTestResultChanged",
                         "returnType": "void"
                     },
@@ -845,7 +845,7 @@
                             }
                         ],
                         "index": 17,
-                        "lineNumber": 324,
+                        "lineNumber": 326,
                         "name": "simulationMessageAdded",
                         "returnType": "void"
                     }

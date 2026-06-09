@@ -1,12 +1,12 @@
-Question 1: In Newton's second law F=ma, why must you use mass in kilograms and not weight in newtons for 'm'?
-Lesson: A common error in physics is mixing up mass and weight. Mass is the amount of matter (kg) and stays constant, while weight is the gravitational force (N) and depends on location. [Thinking: Students often use 'weight' casually in equations requiring mass, leading to unit mismatches.]
-Answer: Because F=ma relates net force to mass, not weight; using weight in newtons would double-count gravity.
+Question 1: Why does a fingerprint at a crime scene fit the concept of reasoning in detective work?
+Lesson: Reasoning involves connecting evidence to a conclusion. In a detective case, finding a suspect's fingerprint at a crime scene is direct evidence. [Thinking: The fingerprint physically links the person to the location, supporting a logical inference of presence.] This fits reasoning because you use the print to deduce they were there.
+Answer: It serves as evidence to logically deduce the suspect's presence at the scene.
 ----------------------------------------
-Question 2: What does the term 'impulse' mean in physics?
-Lesson: In physics, 'impulse' is the product of force and the time interval over which it acts. It equals the change in momentum of an object. [Thinking: impulse links force and time to momentum change.] A longer collision time reduces the average force for the same momentum change.
-Answer: Impulse is force multiplied by time, equal to the change in momentum.
+Question 2: What is the representativeness heuristic mistake in reasoning, and how do you avoid it?
+Lesson: A common reasoning mistake is the 'representativeness heuristic,' where we judge likelihood based on stereotypes. For example, assuming someone quiet must be a librarian ignores the far larger number of salespeople. [Thinking: This illustrates over-reliance on a trait matching a prototype.] To avoid it, consciously consider base rates—the actual frequency of categories in the population.
+Answer: It's judging probability by stereotype fit. Avoid it by considering base rates instead of relying on how typical something seems.
 ----------------------------------------
-Question 3: If a sealed gas container is heated, what causes the pressure to rise?
-Lesson: In physics, increasing the temperature of a gas in a sealed container causes the gas particles to move faster. [Thinking: verifies cause (temperature) and effect (particle speed) relationship.] This faster motion leads to more frequent and forceful collisions with the container walls, which directly increases the pressure.
-Answer: Faster-moving gas particles collide more frequently and forcefully with the container walls.
+Question 3: What can analogical reasoning not reliably do, even when a comparison feels highly intuitive?
+Lesson: Analogical reasoning maps structure from a source domain to a target domain. It is useful for generating hypotheses, but the mapping is based on perceived similarity rather than structural proof. [Thinking: This means a compelling analogy can still be logically false.] Therefore, an analogy alone cannot guarantee a valid conclusion.
+Answer: Guarantee the conclusion in the target domain is true.
 ----------------------------------------

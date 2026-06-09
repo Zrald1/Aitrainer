@@ -12,6 +12,8 @@ appAitrainer_autogen/timestamp: \
 	C:/QTapp/Aitrainer/FrontalLobe.h \
 	C:/QTapp/Aitrainer/Hippocampus.cpp \
 	C:/QTapp/Aitrainer/Hippocampus.h \
+	C:/QTapp/Aitrainer/LightweightTensorReasoner.cpp \
+	C:/QTapp/Aitrainer/LightweightTensorReasoner.h \
 	C:/QTapp/Aitrainer/Synapse.h \
 	C:/QTapp/Aitrainer/TemporalLobe.cpp \
 	C:/QTapp/Aitrainer/TemporalLobe.h \

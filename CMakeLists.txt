@@ -14,6 +14,8 @@ qt_add_executable(appAitrainer
     learningagent.cpp
     loraadapter.h
     loraadapter.cpp
+    LightweightTensorReasoner.h
+    LightweightTensorReasoner.cpp
     agentcontroller.h
     agentcontroller.cpp
     Synapse.h

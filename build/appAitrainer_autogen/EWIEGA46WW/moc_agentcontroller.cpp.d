@@ -6,6 +6,7 @@ C:/QTapp/Aitrainer/build/appAitrainer_autogen/EWIEGA46WW/moc_agentcontroller.cpp
   C:/QTapp/Aitrainer/Cerebellum.h \
   C:/QTapp/Aitrainer/FrontalLobe.h \
   C:/QTapp/Aitrainer/Hippocampus.h \
+  C:/QTapp/Aitrainer/LightweightTensorReasoner.h \
   C:/QTapp/Aitrainer/Synapse.h \
   C:/QTapp/Aitrainer/TemporalLobe.h \
   C:/QTapp/Aitrainer/Thalamus.h \

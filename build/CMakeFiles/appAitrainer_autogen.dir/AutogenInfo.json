@@ -1119,6 +1119,12 @@
 			null
 		],
 		[
+			"C:/QTapp/Aitrainer/LightweightTensorReasoner.h",
+			"MU",
+			"EWIEGA46WW/moc_LightweightTensorReasoner.cpp",
+			null
+		],
+		[
 			"C:/QTapp/Aitrainer/Synapse.h",
 			"MU",
 			"EWIEGA46WW/moc_Synapse.cpp",
@@ -1248,6 +1254,7 @@
 		[ "C:/QTapp/Aitrainer/Cerebellum.cpp", "MU", null ],
 		[ "C:/QTapp/Aitrainer/FrontalLobe.cpp", "MU", null ],
 		[ "C:/QTapp/Aitrainer/Hippocampus.cpp", "MU", null ],
+		[ "C:/QTapp/Aitrainer/LightweightTensorReasoner.cpp", "MU", null ],
 		[ "C:/QTapp/Aitrainer/TemporalLobe.cpp", "MU", null ],
 		[ "C:/QTapp/Aitrainer/Thalamus.cpp", "MU", null ],
 		[ "C:/QTapp/Aitrainer/agentcontroller.cpp", "MU", null ],

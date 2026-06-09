@@ -13,6 +13,7 @@
 #include <QProcess>
 #include <QVector>
 #include "learningagent.h"
+#include "LightweightTensorReasoner.h"
 
 class QThread;
 class QTimer;
@@ -117,6 +118,7 @@ private:
     QString m_lastGeneratedKind;
     QString m_lastGeneratedTopic;
     int m_generationCounter;
+    LightweightTensorReasoner m_tensorReasoner;
 
     int m_simulationDelay;
     QStringList m_pendingDatasetChunks;

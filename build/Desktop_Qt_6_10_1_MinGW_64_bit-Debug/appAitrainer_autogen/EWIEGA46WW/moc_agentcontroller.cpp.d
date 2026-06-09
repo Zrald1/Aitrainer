@@ -6,6 +6,7 @@ C:/QTapp/Aitrainer/build/Desktop_Qt_6_10_1_MinGW_64_bit-Debug/appAitrainer_autog
   C:/QTapp/Aitrainer/Cerebellum.h \
   C:/QTapp/Aitrainer/FrontalLobe.h \
   C:/QTapp/Aitrainer/Hippocampus.h \
+  C:/QTapp/Aitrainer/LightweightTensorReasoner.h \
   C:/QTapp/Aitrainer/Synapse.h \
   C:/QTapp/Aitrainer/TemporalLobe.h \
   C:/QTapp/Aitrainer/Thalamus.h \

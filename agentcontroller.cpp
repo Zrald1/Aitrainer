@@ -4800,6 +4800,8 @@ QString AgentController::learnAndRespond(const QString &input) {
         return "";
     }
 
+    const LightweightTensorReasoner::Result tensorReasoning = m_tensorReasoner.analyze(cleanInput);
+
     QString qResponse = buildGenerativeLocalAnswer(cleanInput,
                                                    &m_lastGeneratedKind,
                                                    &m_lastGeneratedTopic,
@@ -4816,7 +4818,7 @@ QString AgentController::learnAndRespond(const QString &input) {
         return qResponse;
     }
 
-    const bool question = isLikelyQuestion(cleanInput);
+    const bool question = isLikelyQuestion(cleanInput) || tensorReasoning.questionLike;
     if (question) {
         QString bestCurriculumAnswer;
         QString bestCurriculumLesson;
@@ -4850,14 +4852,16 @@ QString AgentController::learnAndRespond(const QString &input) {
         }
 
         if (qResponse.isEmpty()) {
+            QString thinking = m_tensorReasoner.visiblePlan(tensorReasoning, cleanInput);
+            thinking = compactText(thinking, 260);
             if (!relatedLearning.isEmpty()) {
-                qResponse = QString("[Thinking: I understood the request as \"%1\", found related trained lessons, but none directly verified this exact question.]\n"
+                qResponse = QString("[Thinking: %1 I found related trained lessons, but none directly verified this exact question.]\n"
                                     "Answer: I do not know confidently from my trained lessons yet.")
-                                .arg(compactText(cleanInput, 140));
+                                .arg(thinking);
             } else {
-                qResponse = QString("[Thinking: I understood the request as \"%1\", then checked structured knowledge and local rules but could not verify enough facts.]\n"
+                qResponse = QString("[Thinking: %1 I checked structured knowledge and local rules but could not verify enough facts.]\n"
                                     "Answer: I do not have enough learned facts yet to answer confidently.")
-                                .arg(compactText(cleanInput, 140));
+                                .arg(thinking);
             }
         }
 
