@@ -44,12 +44,12 @@ bool LearningAgent::trainLoraText(const std::string& input,
                 *trainingStatus = gpuStatus;
             }
         } else {
-            lora.trainSequence(tokens, epochs, learningRate, salience);
             if (trainingStatus) {
                 *trainingStatus = gpuStatus.empty()
-                    ? "Local GPU unavailable; trained with the pure C++ CPU LoRA path."
-                    : gpuStatus + " Trained with the pure C++ CPU LoRA fallback.";
+                    ? "Local GPU training was required but Direct3D training did not run."
+                    : gpuStatus + " Local GPU training was required, so CPU fallback was not used.";
             }
+            return false;
         }
     } else {
         lora.trainSequence(tokens, epochs, learningRate, salience);
@@ -63,6 +63,10 @@ bool LearningAgent::trainLoraText(const std::string& input,
 
 bool LearningAgent::localGpuAvailable(std::string *status) {
     return LoraAdapter::localGpuAvailable(status);
+}
+
+bool LearningAgent::localGpuDatasetScan(const std::string &text, std::string *status) {
+    return LoraAdapter::localGpuDatasetScan(text, status);
 }
 
 void LearningAgent::mergeLora(double minimumDelta) {

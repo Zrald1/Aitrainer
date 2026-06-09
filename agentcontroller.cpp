@@ -3015,7 +3015,7 @@ void AgentController::setUseLocalGpuTraining(bool enabled) {
             setLocalGpuTrainingStatus(QString::fromStdString(status));
         } else {
             m_isLocalGpuTrainingRunning = false;
-            setLocalGpuTrainingStatus("Local GPU training disabled; CPU LoRA path will be used.");
+            setLocalGpuTrainingStatus("Local GPU disabled; parser scan and LoRA training will use CPU paths.");
         }
         emit localGpuTrainingChanged();
     }
@@ -3207,6 +3207,9 @@ QString AgentController::trainLoraFromText(const QString &trainingText, int epoc
         setLocalGpuTrainingStatus(QString::fromStdString(trainingStatus));
     }
     if (!trained) {
+        if (m_useLocalGpuTraining && !trainingStatus.empty()) {
+            return "Local GPU LoRA training failed: " + QString::fromStdString(trainingStatus);
+        }
         return "LoRA training failed: text could not be tokenized.";
     }
 
@@ -3797,6 +3800,21 @@ void AgentController::startDatasetBytesParsing(const QByteArray &datasetBytes, c
     m_datasetTrainingNextChunkIndex = 0;
     m_pendingDatasetChunks.clear();
 
+    const bool useLocalGpuForParse = m_useLocalGpuTraining;
+    if (useLocalGpuForParse) {
+        std::string gpuStatus;
+        if (!LearningAgent::localGpuAvailable(&gpuStatus)) {
+            const QString message = "Dataset parsing failed: local GPU is checked but Direct3D is unavailable. "
+                + QString::fromStdString(gpuStatus);
+            setLocalGpuTrainingStatus(message);
+            appendToSimulationLog("[Local GPU Parsing]: " + message);
+            emit simulationMessageAdded("system", message);
+            return;
+        }
+        setLocalGpuTrainingStatus(QString::fromStdString(gpuStatus));
+        appendToSimulationLog("[Local GPU Parsing]: " + QString::fromStdString(gpuStatus));
+    }
+
     appendToSimulationLog(QString("[Dataset Training]: Downloaded %1 bytes. Parsing samples on a background thread.")
         .arg(originalBytes));
     emit simulationMessageAdded("system", "Dataset downloaded. Parsing in the background so the UI stays responsive.");
@@ -3806,7 +3824,37 @@ void AgentController::startDatasetBytesParsing(const QByteArray &datasetBytes, c
     }
 
     QPointer<AgentController> self(this);
-    m_datasetParseThread = QThread::create([self, datasetBytes, source, originalBytes]() {
+    m_datasetParseThread = QThread::create([self, datasetBytes, source, originalBytes, useLocalGpuForParse]() {
+        if (useLocalGpuForParse) {
+            std::string scanStatus;
+            const std::string payload(datasetBytes.constData(), static_cast<size_t>(datasetBytes.size()));
+            if (!LearningAgent::localGpuDatasetScan(payload, &scanStatus)) {
+                if (self) {
+                    const QString message = "Dataset parsing failed: local GPU parser scan did not run. "
+                        + QString::fromStdString(scanStatus);
+                    QMetaObject::invokeMethod(self.data(),
+                                              [self, message]() {
+                                                  if (self) {
+                                                      self->setLocalGpuTrainingStatus(message);
+                                                      self->failDatasetParsing(message);
+                                                  }
+                                              },
+                                              Qt::QueuedConnection);
+                }
+                return;
+            }
+            if (self) {
+                const QString status = QString::fromStdString(scanStatus);
+                QMetaObject::invokeMethod(self.data(),
+                                          [self, status]() {
+                                              if (self) {
+                                                  self->setLocalGpuTrainingStatus(status);
+                                                  self->appendToSimulationLog("[Local GPU Parsing]: " + status);
+                                              }
+                                          },
+                                          Qt::QueuedConnection);
+            }
+        }
         QStringList samples = buildDatasetTrainingSamples(datasetBytes, std::numeric_limits<int>::max());
         if (!self) {
             return;
@@ -3834,6 +3882,21 @@ void AgentController::startDatasetFileParsing(const QString &filePath) {
     m_datasetTrainingNextChunkIndex = 0;
     m_pendingDatasetChunks.clear();
 
+    const bool useLocalGpuForParse = m_useLocalGpuTraining;
+    if (useLocalGpuForParse) {
+        std::string gpuStatus;
+        if (!LearningAgent::localGpuAvailable(&gpuStatus)) {
+            const QString message = "Dataset parsing failed: local GPU is checked but Direct3D is unavailable. "
+                + QString::fromStdString(gpuStatus);
+            setLocalGpuTrainingStatus(message);
+            appendToSimulationLog("[Local GPU Parsing]: " + message);
+            emit simulationMessageAdded("system", message);
+            return;
+        }
+        setLocalGpuTrainingStatus(QString::fromStdString(gpuStatus));
+        appendToSimulationLog("[Local GPU Parsing]: " + QString::fromStdString(gpuStatus));
+    }
+
     appendToSimulationLog(QString("[Dataset Training]: Reading and parsing local dataset on a background thread: %1")
         .arg(filePath));
     emit simulationMessageAdded("system", "Local dataset parsing started in the background so the UI stays responsive.");
@@ -3843,7 +3906,7 @@ void AgentController::startDatasetFileParsing(const QString &filePath) {
     }
 
     QPointer<AgentController> self(this);
-    m_datasetParseThread = QThread::create([self, filePath]() {
+    m_datasetParseThread = QThread::create([self, filePath, useLocalGpuForParse]() {
         QFile file(filePath);
         if (!file.open(QIODevice::ReadOnly)) {
             if (self) {
@@ -3860,6 +3923,36 @@ void AgentController::startDatasetFileParsing(const QString &filePath) {
 
         const QByteArray datasetBytes = file.readAll();
         const int originalBytes = datasetBytes.size();
+        if (useLocalGpuForParse) {
+            std::string scanStatus;
+            const std::string payload(datasetBytes.constData(), static_cast<size_t>(datasetBytes.size()));
+            if (!LearningAgent::localGpuDatasetScan(payload, &scanStatus)) {
+                if (self) {
+                    const QString message = "Dataset parsing failed: local GPU parser scan did not run. "
+                        + QString::fromStdString(scanStatus);
+                    QMetaObject::invokeMethod(self.data(),
+                                              [self, message]() {
+                                                  if (self) {
+                                                      self->setLocalGpuTrainingStatus(message);
+                                                      self->failDatasetParsing(message);
+                                                  }
+                                              },
+                                              Qt::QueuedConnection);
+                }
+                return;
+            }
+            if (self) {
+                const QString status = QString::fromStdString(scanStatus);
+                QMetaObject::invokeMethod(self.data(),
+                                          [self, status]() {
+                                              if (self) {
+                                                  self->setLocalGpuTrainingStatus(status);
+                                                  self->appendToSimulationLog("[Local GPU Parsing]: " + status);
+                                              }
+                                          },
+                                          Qt::QueuedConnection);
+            }
+        }
         QStringList samples = buildDatasetTrainingSamples(datasetBytes, std::numeric_limits<int>::max());
         if (!self) {
             return;
@@ -3919,6 +4012,17 @@ QString AgentController::trainLoraFromDatasetUrl(const QString &datasetUrl, int 
     }
     if (m_datasetReply || m_datasetParseThread || !m_pendingDatasetChunks.isEmpty()) {
         return "Dataset training is already running. Wait for it to finish before starting another dataset.";
+    }
+    if (m_useLocalGpuTraining) {
+        std::string gpuStatus;
+        if (!LearningAgent::localGpuAvailable(&gpuStatus)) {
+            const QString message = "Dataset training failed: Use local GPU is checked, but Direct3D is unavailable. "
+                + QString::fromStdString(gpuStatus);
+            setLocalGpuTrainingStatus(message);
+            appendToSimulationLog("[Local GPU Training]: " + message);
+            return message;
+        }
+        setLocalGpuTrainingStatus(QString::fromStdString(gpuStatus));
     }
 
     QFileInfo localFile(urlText);
@@ -4646,6 +4750,22 @@ void AgentController::handleDatasetTrainingDownload() {
             m_datasetViewerTotalRows = responseTotalRows;
         }
 
+        if (m_useLocalGpuTraining) {
+            std::string scanStatus;
+            const std::string payload(responseBytes.constData(), static_cast<size_t>(responseBytes.size()));
+            if (!LearningAgent::localGpuDatasetScan(payload, &scanStatus)) {
+                const QString message = "Dataset Viewer parsing failed: local GPU parser scan did not run. "
+                    + QString::fromStdString(scanStatus);
+                setLocalGpuTrainingStatus(message);
+                appendToSimulationLog("[Local GPU Parsing]: " + message);
+                emit simulationMessageAdded("system", message);
+                return;
+            }
+            const QString status = QString::fromStdString(scanStatus);
+            setLocalGpuTrainingStatus(status);
+            appendToSimulationLog("[Local GPU Parsing]: " + status);
+        }
+
         const QStringList pageSamples = buildDatasetTrainingSamples(responseBytes, std::numeric_limits<int>::max());
         m_pendingDatasetChunks.append(pageSamples);
 
@@ -4722,54 +4842,77 @@ void AgentController::processNextDatasetTrainingChunk() {
         return;
     }
 
-    const int completed = m_datasetTrainingNextChunkIndex;
-    const QString chunk = m_pendingDatasetChunks.at(m_datasetTrainingNextChunkIndex);
-    ++m_datasetTrainingNextChunkIndex;
+    const int completedBefore = m_datasetTrainingNextChunkIndex;
+    const int batchSize = m_useLocalGpuTraining ? 24 : 1;
+    QStringList batchChunks;
+    while (m_datasetTrainingNextChunkIndex < m_pendingDatasetChunks.size()
+           && batchChunks.size() < batchSize) {
+        batchChunks.append(m_pendingDatasetChunks.at(m_datasetTrainingNextChunkIndex));
+        ++m_datasetTrainingNextChunkIndex;
+    }
+
     if (m_useLocalGpuTraining && !m_isLocalGpuTrainingRunning) {
         m_isLocalGpuTrainingRunning = true;
-        setLocalGpuTrainingStatus("Running Direct3D 11 local GPU LoRA dataset training...");
+        setLocalGpuTrainingStatus("Running Direct3D 11 local GPU LoRA dataset training in batches...");
     }
 
     std::string localGpuStatus;
-    m_agent.trainLoraText(chunk.toStdString(),
-                          m_datasetTrainingEpochs,
-                          0.05,
-                          4,
-                          8.0,
-                          1.1,
-                          m_useLocalGpuTraining,
-                          &localGpuStatus);
+    const QString trainingPayload = batchChunks.join("\n\n");
+    const bool loraTrained = m_agent.trainLoraText(trainingPayload.toStdString(),
+                                                   m_datasetTrainingEpochs,
+                                                   0.05,
+                                                   4,
+                                                   8.0,
+                                                   1.1,
+                                                   m_useLocalGpuTraining,
+                                                   &localGpuStatus);
     if (m_useLocalGpuTraining && !localGpuStatus.empty()) {
         const QString status = QString::fromStdString(localGpuStatus);
         setLocalGpuTrainingStatus(status);
         const bool importantStatus = status.contains("failed", Qt::CaseInsensitive)
             || status.contains("fallback", Qt::CaseInsensitive)
             || status.contains("unavailable", Qt::CaseInsensitive);
-        if (completed == 0 || importantStatus || (completed + 1) % 50 == 0) {
+        if (completedBefore == 0 || importantStatus || m_datasetTrainingNextChunkIndex % 50 == 0) {
             appendToSimulationLog("[Local GPU Training]: " + status);
         }
     }
-    m_agent.learn(chunk.toStdString(), 0.8);
+    if (m_useLocalGpuTraining && !loraTrained) {
+        const QString message = "Dataset training stopped: local GPU LoRA dispatch failed and CPU fallback is disabled. "
+            + QString::fromStdString(localGpuStatus);
+        m_isLocalGpuTrainingRunning = false;
+        setLocalGpuTrainingStatus(message);
+        appendToSimulationLog("[Local GPU Training]: " + message);
+        emit simulationMessageAdded("system", message);
+        m_pendingDatasetChunks.clear();
+        m_datasetTrainingSource.clear();
+        m_datasetTrainingTotalChunks = 0;
+        m_datasetTrainingOriginalBytes = 0;
+        m_datasetTrainingNextChunkIndex = 0;
+        return;
+    }
 
     QRegularExpression qaRx("Question\\s*:\\s*([^\\n]+)(?:\\nLesson\\s*:\\s*([^\\n]+))?\\nAnswer\\s*:\\s*([^\\n]+)",
                             QRegularExpression::CaseInsensitiveOption);
-    QRegularExpressionMatch qaMatch = qaRx.match(chunk);
-    if (qaMatch.hasMatch()) {
-        upsertKnowledge(qaMatch.captured(1).trimmed(),
-                        qaMatch.captured(2).trimmed(),
-                        qaMatch.captured(3).trimmed(),
-                        "",
-                        "dataset training",
-                        0.9);
+    for (const QString &chunk : batchChunks) {
+        m_agent.learn(chunk.toStdString(), 0.8);
+        QRegularExpressionMatch qaMatch = qaRx.match(chunk);
+        if (qaMatch.hasMatch()) {
+            upsertKnowledge(qaMatch.captured(1).trimmed(),
+                            qaMatch.captured(2).trimmed(),
+                            qaMatch.captured(3).trimmed(),
+                            "",
+                            "dataset training",
+                            0.9);
+        }
     }
 
-    if ((completed + 1) % 10 == 0 || m_datasetTrainingNextChunkIndex >= m_pendingDatasetChunks.size()) {
+    if (m_datasetTrainingNextChunkIndex % 10 == 0 || m_datasetTrainingNextChunkIndex >= m_pendingDatasetChunks.size()) {
         appendToSimulationLog(QString("[Dataset Training]: Trained sample/chunk %1/%2")
-            .arg(completed + 1)
+            .arg(m_datasetTrainingNextChunkIndex)
             .arg(m_datasetTrainingTotalChunks));
     }
 
-    QTimer::singleShot(15, this, &AgentController::processNextDatasetTrainingChunk);
+    QTimer::singleShot(m_useLocalGpuTraining ? 0 : 15, this, &AgentController::processNextDatasetTrainingChunk);
 }
 
 QString AgentController::agentFilesSummary() const {

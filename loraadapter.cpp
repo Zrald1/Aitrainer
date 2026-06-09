@@ -52,6 +52,13 @@ struct GpuParams {
     float pad1;
 };
 
+struct GpuTextScanParams {
+    std::uint32_t byteCount;
+    std::uint32_t pad0;
+    std::uint32_t pad1;
+    std::uint32_t pad2;
+};
+
 template <typename T>
 void releaseCom(T *&value)
 {
@@ -157,11 +164,62 @@ void main(uint3 dispatchId : SV_DispatchThreadID)
 )HLSL";
 }
 
+const char *textScanComputeShaderSource()
+{
+    return R"HLSL(
+StructuredBuffer<uint> bytesIn : register(t0);
+RWStructuredBuffer<uint> counts : register(u0);
+
+cbuffer Params : register(b0) {
+    uint byteCount;
+    uint pad0;
+    uint pad1;
+    uint pad2;
+};
+
+[numthreads(256, 1, 1)]
+void main(uint3 dispatchId : SV_DispatchThreadID)
+{
+    uint idx = dispatchId.x;
+    if (idx >= byteCount) {
+        return;
+    }
+
+    uint c = bytesIn[idx] & 255;
+    if (c == 10 || c == 13) {
+        InterlockedAdd(counts[0], 1);
+    }
+    if (c == 44) {
+        InterlockedAdd(counts[1], 1);
+    }
+    if (c == 9) {
+        InterlockedAdd(counts[2], 1);
+    }
+    if (c == 34) {
+        InterlockedAdd(counts[3], 1);
+    }
+    if (c == 123 || c == 91) {
+        InterlockedAdd(counts[4], 1);
+    }
+    if (c == 58) {
+        InterlockedAdd(counts[5], 1);
+    }
+    if (c == 124 || c == 59) {
+        InterlockedAdd(counts[6], 1);
+    }
+    if (c == 0 || c < 9 || (c > 13 && c < 32)) {
+        InterlockedAdd(counts[7], 1);
+    }
+}
+)HLSL";
+}
+
 class D3D11LoraComputeBackend {
 public:
     ~D3D11LoraComputeBackend()
     {
-        releaseCom(m_shader);
+        releaseCom(m_loraShader);
+        releaseCom(m_textScanShader);
         releaseCom(m_context);
         releaseCom(m_device);
     }
@@ -175,6 +233,173 @@ public:
     bool available(std::string *status)
     {
         return initialize(status);
+    }
+
+    bool scanText(const std::string &text, std::string *status)
+    {
+        if (!initialize(status)) {
+            return false;
+        }
+
+        if (text.empty()) {
+            if (status) {
+                *status = "Direct3D 11 local GPU parser scan skipped: dataset payload is empty.";
+            }
+            return false;
+        }
+
+        std::vector<std::uint32_t> bytes;
+        bytes.reserve(text.size());
+        for (unsigned char ch : text) {
+            bytes.push_back(static_cast<std::uint32_t>(ch));
+        }
+
+        UINT byteBufferWidth = 0;
+        if (!checkedByteWidth(sizeof(std::uint32_t), bytes.size(), &byteBufferWidth, status)) {
+            return false;
+        }
+
+        ID3D11Buffer *inputBuffer = nullptr;
+        ID3D11Buffer *countsBuffer = nullptr;
+        ID3D11Buffer *paramsBuffer = nullptr;
+        ID3D11ShaderResourceView *inputSrv = nullptr;
+        ID3D11UnorderedAccessView *countsUav = nullptr;
+
+        auto cleanup = [&]() {
+            releaseCom(inputSrv);
+            releaseCom(countsUav);
+            releaseCom(inputBuffer);
+            releaseCom(countsBuffer);
+            releaseCom(paramsBuffer);
+        };
+
+        auto fail = [&](const std::string &message) {
+            cleanup();
+            if (status) {
+                *status = message;
+            }
+            return false;
+        };
+
+        D3D11_SUBRESOURCE_DATA inputData = {};
+        inputData.pSysMem = bytes.data();
+        D3D11_BUFFER_DESC inputDesc = {};
+        inputDesc.ByteWidth = byteBufferWidth;
+        inputDesc.Usage = D3D11_USAGE_DEFAULT;
+        inputDesc.BindFlags = D3D11_BIND_SHADER_RESOURCE;
+        inputDesc.MiscFlags = D3D11_RESOURCE_MISC_BUFFER_STRUCTURED;
+        inputDesc.StructureByteStride = sizeof(std::uint32_t);
+        HRESULT hr = m_device->CreateBuffer(&inputDesc, &inputData, &inputBuffer);
+        if (FAILED(hr)) {
+            return fail(hresultMessage("Direct3D parser input buffer creation", hr));
+        }
+
+        D3D11_SHADER_RESOURCE_VIEW_DESC inputSrvDesc = {};
+        inputSrvDesc.Format = DXGI_FORMAT_UNKNOWN;
+        inputSrvDesc.ViewDimension = D3D11_SRV_DIMENSION_BUFFER;
+        inputSrvDesc.Buffer.FirstElement = 0;
+        inputSrvDesc.Buffer.NumElements = static_cast<UINT>(bytes.size());
+        hr = m_device->CreateShaderResourceView(inputBuffer, &inputSrvDesc, &inputSrv);
+        if (FAILED(hr)) {
+            return fail(hresultMessage("Direct3D parser shader-resource view creation", hr));
+        }
+
+        const std::uint32_t zeroCounts[8] = {};
+        D3D11_SUBRESOURCE_DATA countsData = {};
+        countsData.pSysMem = zeroCounts;
+        D3D11_BUFFER_DESC countsDesc = {};
+        countsDesc.ByteWidth = sizeof(zeroCounts);
+        countsDesc.Usage = D3D11_USAGE_DEFAULT;
+        countsDesc.BindFlags = D3D11_BIND_UNORDERED_ACCESS;
+        countsDesc.MiscFlags = D3D11_RESOURCE_MISC_BUFFER_STRUCTURED;
+        countsDesc.StructureByteStride = sizeof(std::uint32_t);
+        hr = m_device->CreateBuffer(&countsDesc, &countsData, &countsBuffer);
+        if (FAILED(hr)) {
+            return fail(hresultMessage("Direct3D parser count buffer creation", hr));
+        }
+
+        D3D11_UNORDERED_ACCESS_VIEW_DESC countsUavDesc = {};
+        countsUavDesc.Format = DXGI_FORMAT_UNKNOWN;
+        countsUavDesc.ViewDimension = D3D11_UAV_DIMENSION_BUFFER;
+        countsUavDesc.Buffer.FirstElement = 0;
+        countsUavDesc.Buffer.NumElements = 8;
+        hr = m_device->CreateUnorderedAccessView(countsBuffer, &countsUavDesc, &countsUav);
+        if (FAILED(hr)) {
+            return fail(hresultMessage("Direct3D parser unordered-access view creation", hr));
+        }
+
+        GpuTextScanParams params = {};
+        params.byteCount = static_cast<std::uint32_t>(bytes.size());
+        D3D11_SUBRESOURCE_DATA paramsData = {};
+        paramsData.pSysMem = &params;
+        D3D11_BUFFER_DESC paramsDesc = {};
+        paramsDesc.ByteWidth = sizeof(GpuTextScanParams);
+        paramsDesc.Usage = D3D11_USAGE_DEFAULT;
+        paramsDesc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
+        hr = m_device->CreateBuffer(&paramsDesc, &paramsData, &paramsBuffer);
+        if (FAILED(hr)) {
+            return fail(hresultMessage("Direct3D parser parameter buffer creation", hr));
+        }
+
+        ID3D11ShaderResourceView *srvs[1] = {inputSrv};
+        ID3D11UnorderedAccessView *uavs[1] = {countsUav};
+        UINT initialCounts[1] = {0};
+        m_context->CSSetShader(m_textScanShader, nullptr, 0);
+        m_context->CSSetShaderResources(0, 1, srvs);
+        m_context->CSSetUnorderedAccessViews(0, 1, uavs, initialCounts);
+        m_context->CSSetConstantBuffers(0, 1, &paramsBuffer);
+        const UINT groups = static_cast<UINT>((bytes.size() + 255) / 256);
+        m_context->Dispatch(groups, 1, 1);
+
+        ID3D11ShaderResourceView *nullSrvs[1] = {nullptr};
+        ID3D11UnorderedAccessView *nullUavs[1] = {nullptr};
+        ID3D11Buffer *nullBuffers[1] = {nullptr};
+        m_context->CSSetShaderResources(0, 1, nullSrvs);
+        m_context->CSSetUnorderedAccessViews(0, 1, nullUavs, initialCounts);
+        m_context->CSSetConstantBuffers(0, 1, nullBuffers);
+        m_context->CSSetShader(nullptr, nullptr, 0);
+
+        D3D11_BUFFER_DESC stagingDesc = countsDesc;
+        stagingDesc.Usage = D3D11_USAGE_STAGING;
+        stagingDesc.BindFlags = 0;
+        stagingDesc.CPUAccessFlags = D3D11_CPU_ACCESS_READ;
+        ID3D11Buffer *stagingBuffer = nullptr;
+        hr = m_device->CreateBuffer(&stagingDesc, nullptr, &stagingBuffer);
+        if (FAILED(hr)) {
+            releaseCom(stagingBuffer);
+            return fail(hresultMessage("Direct3D parser staging buffer creation", hr));
+        }
+
+        m_context->CopyResource(stagingBuffer, countsBuffer);
+        D3D11_MAPPED_SUBRESOURCE mapped = {};
+        hr = m_context->Map(stagingBuffer, 0, D3D11_MAP_READ, 0, &mapped);
+        if (FAILED(hr)) {
+            releaseCom(stagingBuffer);
+            return fail(hresultMessage("Direct3D parser result mapping", hr));
+        }
+
+        std::uint32_t counts[8] = {};
+        std::memcpy(counts, mapped.pData, sizeof(counts));
+        m_context->Unmap(stagingBuffer, 0);
+        releaseCom(stagingBuffer);
+
+        cleanup();
+        if (status) {
+            const bool jsonLike = counts[4] > 0 && counts[5] > 0;
+            const bool csvLike = counts[1] > counts[2] && counts[1] > counts[6];
+            const bool tsvLike = counts[2] > 0 && counts[2] >= counts[1];
+            const bool pipeLike = counts[6] > 0 && counts[6] >= counts[1];
+            const char *shape = jsonLike ? "json/jsonl"
+                : (tsvLike ? "tsv"
+                   : (pipeLike ? "pipe/semicolon"
+                      : (csvLike ? "csv" : "plain text")));
+            std::ostringstream out;
+            out << "Direct3D 11 local GPU parser scan complete: "
+                << bytes.size() << " bytes, "
+                << counts[0] << " line breaks, detected " << shape << " structure.";
+            *status = out.str();
+        }
+        return true;
     }
 
     bool trainSequence(const std::vector<GpuPairIndex> &pairs,
@@ -295,7 +520,7 @@ public:
         ID3D11ShaderResourceView *srvs[1] = {pairSrv};
         ID3D11UnorderedAccessView *uavs[2] = {aUav, bUav};
         UINT initialCounts[2] = {0, 0};
-        m_context->CSSetShader(m_shader, nullptr, 0);
+        m_context->CSSetShader(m_loraShader, nullptr, 0);
         m_context->CSSetShaderResources(0, 1, srvs);
         m_context->CSSetUnorderedAccessViews(0, 2, uavs, initialCounts);
         m_context->CSSetConstantBuffers(0, 1, &paramsBuffer);
@@ -414,7 +639,7 @@ private:
         hr = m_device->CreateComputeShader(shaderBlob->GetBufferPointer(),
                                            shaderBlob->GetBufferSize(),
                                            nullptr,
-                                           &m_shader);
+                                           &m_loraShader);
         releaseCom(shaderBlob);
         releaseCom(errorBlob);
         if (FAILED(hr)) {
@@ -427,8 +652,55 @@ private:
             return false;
         }
 
+        const char *scanSource = textScanComputeShaderSource();
+        hr = D3DCompile(scanSource,
+                        std::strlen(scanSource),
+                        "AitrainerDatasetScan.hlsl",
+                        nullptr,
+                        nullptr,
+                        "main",
+                        "cs_5_0",
+                        D3DCOMPILE_ENABLE_STRICTNESS,
+                        0,
+                        &shaderBlob,
+                        &errorBlob);
+        if (FAILED(hr)) {
+            std::string compileError = hresultMessage("Direct3D parser scan shader compilation", hr);
+            if (errorBlob && errorBlob->GetBufferPointer()) {
+                compileError += " ";
+                compileError += static_cast<const char *>(errorBlob->GetBufferPointer());
+            }
+            releaseCom(shaderBlob);
+            releaseCom(errorBlob);
+            releaseCom(m_loraShader);
+            releaseCom(m_context);
+            releaseCom(m_device);
+            m_status = compileError;
+            if (status) {
+                *status = m_status;
+            }
+            return false;
+        }
+
+        hr = m_device->CreateComputeShader(shaderBlob->GetBufferPointer(),
+                                           shaderBlob->GetBufferSize(),
+                                           nullptr,
+                                           &m_textScanShader);
+        releaseCom(shaderBlob);
+        releaseCom(errorBlob);
+        if (FAILED(hr)) {
+            releaseCom(m_loraShader);
+            releaseCom(m_context);
+            releaseCom(m_device);
+            m_status = hresultMessage("Direct3D parser scan shader creation", hr);
+            if (status) {
+                *status = m_status;
+            }
+            return false;
+        }
+
         m_ready = true;
-        m_status = "Direct3D 11 local GPU LoRA compute ready.";
+        m_status = "Direct3D 11 local GPU LoRA compute and parser scan ready.";
         if (status) {
             *status = m_status;
         }
@@ -440,7 +712,8 @@ private:
     std::string m_status = "Direct3D 11 local GPU has not been checked yet.";
     ID3D11Device *m_device = nullptr;
     ID3D11DeviceContext *m_context = nullptr;
-    ID3D11ComputeShader *m_shader = nullptr;
+    ID3D11ComputeShader *m_loraShader = nullptr;
+    ID3D11ComputeShader *m_textScanShader = nullptr;
 };
 
 #endif
@@ -707,6 +980,19 @@ bool LoraAdapter::localGpuAvailable(std::string *status)
 #else
     if (status) {
         *status = "Local GPU training is unavailable in this build; Direct3D 11 compute support was not compiled.";
+    }
+    return false;
+#endif
+}
+
+bool LoraAdapter::localGpuDatasetScan(const std::string &text, std::string *status)
+{
+#if defined(_WIN32) && defined(AITRAINER_D3D11_GPU)
+    return D3D11LoraComputeBackend::instance().scanText(text, status);
+#else
+    (void)text;
+    if (status) {
+        *status = "Local GPU parser scan is unavailable in this build; Direct3D 11 compute support was not compiled.";
     }
     return false;
 #endif

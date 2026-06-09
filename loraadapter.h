@@ -45,6 +45,7 @@ public:
                           double salience,
                           std::string *status = nullptr);
     static bool localGpuAvailable(std::string *status = nullptr);
+    static bool localGpuDatasetScan(const std::string &text, std::string *status = nullptr);
 
     std::vector<std::pair<std::pair<std::string, std::string>, double>> materializedDeltas(double minimumDelta) const;
 

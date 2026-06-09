@@ -35,6 +35,7 @@ public:
                        bool useLocalGpu = false,
                        std::string *trainingStatus = nullptr);
     static bool localGpuAvailable(std::string *status = nullptr);
+    static bool localGpuDatasetScan(const std::string &text, std::string *status = nullptr);
     void mergeLora(double minimumDelta = 0.01);
     bool saveLora(const std::string& filePath = "");
     bool loadLora(const std::string& filePath = "");
