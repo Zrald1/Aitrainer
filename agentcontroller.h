@@ -6,10 +6,12 @@
 #include <QStringList>
 #include <QVariantList>
 #include <QVariantMap>
+#include <QHash>
 #include <QNetworkAccessManager>
 #include <QNetworkReply>
 #include <QNetworkRequest>
 #include <QProcess>
+#include <QVector>
 #include "learningagent.h"
 
 class QThread;
@@ -98,6 +100,9 @@ private:
         double strength;
     };
     QList<LearnedKnowledge> m_knowledgeBank;
+    mutable bool m_knowledgeIndexDirty;
+    mutable QHash<QString, QVector<int>> m_knowledgeTokenIndex;
+    mutable QVector<QStringList> m_knowledgeItemTokens;
     QString m_knowledgeFile;
     QString m_loraFile;
 
@@ -109,6 +114,9 @@ private:
     QThread *m_datasetParseThread;
     QTimer *m_datasetParseLogTimer;
     QList<QVariantMap> m_conversationHistory;
+    QString m_lastGeneratedKind;
+    QString m_lastGeneratedTopic;
+    int m_generationCounter;
 
     int m_simulationDelay;
     QStringList m_pendingDatasetChunks;
@@ -194,6 +202,9 @@ private:
     bool isQuestionAlreadyLearned(const QString &question, int *score = nullptr) const;
     bool loadKnowledgeBank();
     bool saveKnowledgeBank() const;
+    void markKnowledgeIndexDirty();
+    void ensureKnowledgeIndex() const;
+    QVector<int> candidateKnowledgeIndexes(const QString &query, int limit = 512) const;
     void upsertKnowledge(const QString &question,
                          const QString &lesson,
                          const QString &answer,
@@ -201,6 +212,7 @@ private:
                          const QString &source,
                          double strength);
     int findBestKnowledgeIndex(const QString &query, int *score = nullptr) const;
+    QString buildAppliedLearningAnswer(const QString &question, int *score = nullptr) const;
     QString relatedKnowledgeContext(const QString &query, int limit = 3) const;
 
 public:

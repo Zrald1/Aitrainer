@@ -38,7 +38,7 @@ Window {
         
         chatModel.append({
             "sender": "agent",
-            "text": "Hello! Ask a question or send a statement. I will check my answer first and keep statements as chat context.",
+            "text": "Hello! Ask a question or send a statement. I will check my answer first. Normal chat is read-only unless you start explicit training.",
             "timestamp": new Date().toLocaleTimeString(Qt.locale(), "hh:mm AP")
         });
     }

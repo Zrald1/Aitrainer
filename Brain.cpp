@@ -5,6 +5,7 @@
 #include <iostream>
 #include <sstream>
 #include <unordered_set>
+#include <utility>
 
 namespace {
 
@@ -249,7 +250,7 @@ void Brain::learn(const std::string& text, double salience) {
         }
     }
 
-    const size_t maxSentences = 2000;
+    const size_t maxSentences = 100000;
     if (sentenceMemory.size() > maxSentences) {
         const auto eraseCount = static_cast<std::vector<std::string>::difference_type>(sentenceMemory.size() - maxSentences);
         sentenceMemory.erase(sentenceMemory.begin(),
@@ -284,8 +285,7 @@ std::string Brain::process(const std::string& input, double temperature, int max
 
     const std::unordered_set<std::string> queryTokens = significantTokenSet(tokens);
     if (!sentenceMemory.empty() && !queryTokens.empty()) {
-        int bestScore = 0;
-        std::string bestSentence;
+        std::vector<std::pair<int, std::string>> rankedSentences;
         const std::string normalizedInput = lowerCopy(normalizeSpaces(input));
 
         for (const std::string& sentence : sentenceMemory) {
@@ -297,9 +297,11 @@ std::string Brain::process(const std::string& input, double temperature, int max
             const std::vector<std::string> sentenceTokens = thalamus.route(sentence);
             const std::unordered_set<std::string> sentenceTokenSet = significantTokenSet(sentenceTokens);
             int score = 0;
+            int overlap = 0;
             for (const std::string& token : queryTokens) {
                 if (sentenceTokenSet.find(token) != sentenceTokenSet.end()) {
-                    score += 3;
+                    score += 4;
+                    ++overlap;
                 } else if (normalizedSentence.find(token) != std::string::npos) {
                     score += 1;
                 }
@@ -307,20 +309,43 @@ std::string Brain::process(const std::string& input, double temperature, int max
 
             if (normalizedSentence.find(" is ") != std::string::npos
                 || normalizedSentence.find(" are ") != std::string::npos
-                || normalizedSentence.find(" means ") != std::string::npos) {
-                score += 1;
+                || normalizedSentence.find(" means ") != std::string::npos
+                || normalizedSentence.find(" because ") != std::string::npos
+                || normalizedSentence.find(" therefore ") != std::string::npos
+                || normalizedSentence.find(" rule ") != std::string::npos
+                || normalizedSentence.find(" correct answer ") != std::string::npos) {
+                score += 2;
             }
 
-            if (score > bestScore) {
-                bestScore = score;
-                bestSentence = sentence;
+            const int coverage = overlap * 100 / std::max<int>(1, static_cast<int>(queryTokens.size()));
+            if (score >= 5 && (overlap >= 2 || coverage >= 45)) {
+                rankedSentences.push_back({score, sentence});
             }
         }
 
-        if (bestScore >= 3 && !bestSentence.empty()) {
+        std::sort(rankedSentences.begin(), rankedSentences.end(), [](const auto& left, const auto& right) {
+            if (left.first != right.first) {
+                return left.first > right.first;
+            }
+            return left.second.size() > right.second.size();
+        });
+
+        if (!rankedSentences.empty() && rankedSentences.front().first >= 6) {
             (void)temperature;
-            (void)maxWords;
-            return polishEnglishSentence(bestSentence);
+            std::string response = rankedSentences.front().second;
+            for (size_t i = 1; i < rankedSentences.size() && i < 3; ++i) {
+                if (rankedSentences[i].first + 3 < rankedSentences.front().first) {
+                    break;
+                }
+                if (wordCount(response) + wordCount(rankedSentences[i].second) > maxWords) {
+                    break;
+                }
+                const std::string normalizedCandidate = lowerCopy(normalizeSpaces(rankedSentences[i].second));
+                if (lowerCopy(normalizeSpaces(response)).find(normalizedCandidate) == std::string::npos) {
+                    response += " " + rankedSentences[i].second;
+                }
+            }
+            return polishEnglishSentence(response);
         }
     }
 

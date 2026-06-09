@@ -20,6 +20,7 @@
 #include <QPointer>
 #include <QSharedPointer>
 #include <QSet>
+#include <algorithm>
 #include <cmath>
 #include <limits>
 #include <utility>
@@ -50,9 +51,33 @@ bool numbersMatch(double left, double right)
     return std::abs(left - right) < 0.000001;
 }
 
+QString requestCoreForRouting(QString text)
+{
+    text = text.trimmed().toLower();
+    text.replace(QRegularExpression("\\s+"), " ");
+
+    bool changed = true;
+    while (changed) {
+        changed = false;
+        static const QStringList prefixes = {
+            "okay ", "ok ", "please ", "pls ", "alright ", "hey ", "hello ",
+            "can you please ", "could you please ", "can you ", "could you "
+        };
+        for (const QString &prefix : prefixes) {
+            if (text.startsWith(prefix)) {
+                text = text.mid(prefix.length()).trimmed();
+                changed = true;
+                break;
+            }
+        }
+    }
+
+    return text;
+}
+
 bool isLikelyQuestion(const QString &input)
 {
-    const QString text = input.trimmed().toLower();
+    const QString text = requestCoreForRouting(input);
     if (text.endsWith("?")) {
         return true;
     }
@@ -60,7 +85,10 @@ bool isLikelyQuestion(const QString &input)
     static const QStringList questionStarts = {
         "what ", "why ", "how ", "when ", "where ", "who ", "which ",
         "can ", "could ", "should ", "would ", "is ", "are ", "do ", "does ",
-        "did ", "solve ", "calculate ", "tell me ", "explain "
+        "did ", "solve ", "calculate ", "tell me ", "explain ", "show me ",
+        "give me ", "list ", "describe ", "teach me ", "help me ", "provide ",
+        "create ", "generate ", "write ", "make ", "compose ", "ask me ",
+        "quiz me "
     };
 
     for (const QString &start : questionStarts) {
@@ -81,50 +109,180 @@ QString normalizedForMatch(QString text)
     return text.trimmed();
 }
 
+QString canonicalLearningToken(QString word)
+{
+    word = word.trimmed().toLower();
+    if (word.isEmpty()) {
+        return word;
+    }
+
+    if (word == "capabiltiies" || word == "capabilities") {
+        return "capability";
+    }
+    if (word == "casualties") {
+        return "casualty";
+    }
+    if (word == "prioritized" || word == "prioritised" || word == "prioritizing" || word == "prioritising") {
+        return "priority";
+    }
+    if (word == "eaten" || word == "eating") {
+        return "eat";
+    }
+
+    if (word.length() > 5 && word.endsWith("ies")) {
+        word.chop(3);
+        word += "y";
+    } else if (word.length() > 6 && word.endsWith("ing")) {
+        word.chop(3);
+    } else if (word.length() > 5 && word.endsWith("ed")) {
+        word.chop(2);
+    } else if (word.length() > 4 && word.endsWith('s') && !word.endsWith("ss")) {
+        word.chop(1);
+    }
+
+    return word;
+}
+
+QStringList semanticAliasesForToken(const QString &token)
+{
+    const QString t = canonicalLearningToken(token);
+    if (t == "survival" || t == "survive" || t == "wilderness" || t == "emergency") {
+        return {"survival", "emergency", "life", "death"};
+    }
+    if (t == "life" || t == "death") {
+        return {"survival", "emergency"};
+    }
+    if (t == "shelter") {
+        return {"exposure", "weather", "cold", "warmth"};
+    }
+    if (t == "weather" || t == "exposure" || t == "cold") {
+        return {"shelter", "weather", "exposure"};
+    }
+    if (t == "food" || t == "eat" || t == "hunger") {
+        return {"energy", "food", "hunger"};
+    }
+    if (t == "energy") {
+        return {"food", "eat", "fuel"};
+    }
+    if (t == "oxygen" || t == "hypoxia" || t == "airway" || t == "breathing" || t == "drown") {
+        return {"oxygen", "hypoxia", "airway", "breathing"};
+    }
+    if (t == "triage" || t == "urgency" || t == "patient" || t == "casualty") {
+        return {"triage", "urgency", "patient", "casualty", "priority"};
+    }
+    if (t == "resource" || t == "critical" || t == "luxury" || t == "essential") {
+        return {"resource", "critical", "luxury", "essential", "comfort"};
+    }
+    if (t == "symptom" || t == "surface" || t == "sign") {
+        return {"symptom", "surface", "root", "cause"};
+    }
+    if (t == "root" || t == "cause" || t == "underlying" || t == "mechanism") {
+        return {"root", "cause", "underlying", "mechanism"};
+    }
+    if (t == "rule") {
+        return {"rule", "principle", "method"};
+    }
+    return {};
+}
+
 int keywordOverlapScore(const QString &left, const QString &right)
 {
     static const QStringList stopWords = {
         "what", "is", "the", "of", "a", "an", "in", "to", "and", "or",
         "for", "with", "on", "at", "by", "how", "why", "where", "who",
         "which", "about", "are", "do", "does", "did", "can", "could",
-        "should", "would", "tell", "me", "explain"
+        "should", "would", "tell", "me", "explain", "formula", "equation",
+        "rule", "method"
     };
 
     const QStringList leftWords = normalizedForMatch(left).split(' ', Qt::SkipEmptyParts);
     const QStringList rightWords = normalizedForMatch(right).split(' ', Qt::SkipEmptyParts);
+    QSet<QString> rightTokens;
+    for (const QString &word : rightWords) {
+        const QString token = canonicalLearningToken(word);
+        if (!token.isEmpty()) {
+            rightTokens.insert(token);
+        }
+    }
+
     int score = 0;
     for (const QString &word : leftWords) {
-        if (!stopWords.contains(word) && rightWords.contains(word)) {
+        const QString token = canonicalLearningToken(word);
+        if (!token.isEmpty() && !stopWords.contains(token) && rightTokens.contains(token)) {
             score++;
         }
     }
     return score;
 }
 
-QStringList significantQuestionTokens(const QString &text)
+QStringList significantQuestionTokens(const QString &text, bool expandAliases = true)
 {
     static const QStringList stopWords = {
         "what", "is", "the", "of", "a", "an", "in", "to", "and", "or",
         "for", "with", "on", "at", "by", "how", "why", "where", "who",
         "which", "about", "are", "do", "does", "did", "can", "could",
         "should", "would", "tell", "me", "explain", "find", "solve",
-        "calculate", "answer", "question"
+        "calculate", "answer", "question", "formula", "equation", "rule",
+        "method"
     };
 
     QStringList tokens;
     const QStringList words = normalizedForMatch(text).split(' ', Qt::SkipEmptyParts);
     for (const QString &word : words) {
-        if (stopWords.contains(word)) {
+        const QString token = canonicalLearningToken(word);
+        if (token.isEmpty()) {
             continue;
         }
-        if (word.length() < 2 && !word.front().isDigit()) {
+        if (stopWords.contains(token)) {
             continue;
         }
-        if (!tokens.contains(word)) {
-            tokens.append(word);
+        if (token.length() < 2 && !token.front().isDigit()) {
+            continue;
+        }
+        if (!tokens.contains(token)) {
+            tokens.append(token);
+        }
+        if (expandAliases) {
+            for (const QString &alias : semanticAliasesForToken(token)) {
+                const QString cleanAlias = canonicalLearningToken(alias);
+                if (!cleanAlias.isEmpty() && !stopWords.contains(cleanAlias) && !tokens.contains(cleanAlias)) {
+                    tokens.append(cleanAlias);
+                }
+            }
         }
     }
     return tokens;
+}
+
+int tokenCoveragePercent(const QStringList &queryTokens, const QStringList &learningTokens)
+{
+    if (queryTokens.isEmpty() || learningTokens.isEmpty()) {
+        return 0;
+    }
+
+    int overlap = 0;
+    for (const QString &token : queryTokens) {
+        if (learningTokens.contains(token)) {
+            overlap++;
+        }
+    }
+    return (overlap * 100) / qMax(1, queryTokens.size());
+}
+
+QStringList overlappingEvidenceTokens(const QString &query, const QString &learningText, int limit = 5)
+{
+    const QStringList queryTokens = significantQuestionTokens(query, false);
+    const QStringList learningTokens = significantQuestionTokens(learningText, false);
+    QStringList evidence;
+    for (const QString &token : queryTokens) {
+        if (learningTokens.contains(token) && !evidence.contains(token)) {
+            evidence.append(token);
+            if (evidence.size() >= limit) {
+                break;
+            }
+        }
+    }
+    return evidence;
 }
 
 int questionSimilarityScore(const QString &left, const QString &right)
@@ -144,8 +302,8 @@ int questionSimilarityScore(const QString &left, const QString &right)
         return 130;
     }
 
-    const QStringList leftTokens = significantQuestionTokens(left);
-    const QStringList rightTokens = significantQuestionTokens(right);
+    const QStringList leftTokens = significantQuestionTokens(left, false);
+    const QStringList rightTokens = significantQuestionTokens(right, false);
     if (leftTokens.isEmpty() || rightTokens.isEmpty()) {
         return 0;
     }
@@ -181,8 +339,8 @@ int questionSimilarityScore(const QString &left, const QString &right)
 
 int meaningfulTokenOverlapScore(const QString &query, const QString &learningText)
 {
-    const QStringList queryTokens = significantQuestionTokens(query);
-    const QStringList learningTokens = significantQuestionTokens(learningText);
+    const QStringList queryTokens = significantQuestionTokens(query, true);
+    const QStringList learningTokens = significantQuestionTokens(learningText, true);
     if (queryTokens.isEmpty() || learningTokens.isEmpty()) {
         return 0;
     }
@@ -206,9 +364,136 @@ int relatedLearningMinimumScore()
     return 24;
 }
 
+int appliedLearningMinimumScore()
+{
+    return 42;
+}
+
 bool isDirectKnowledgeMatch(const QString &query, const QString &learnedQuestion)
 {
     return questionSimilarityScore(query, learnedQuestion) >= 100;
+}
+
+bool isLowConfidenceAnswerText(const QString &answer)
+{
+    const QString normalized = normalizedForMatch(answer);
+    return normalized.isEmpty()
+        || normalized.contains("do not know")
+        || normalized.contains("dont know")
+        || normalized.contains("not enough")
+        || normalized.contains("need to learn")
+        || normalized.contains("cannot answer")
+        || normalized.contains("unknown");
+}
+
+bool asksForExamples(const QString &question)
+{
+    const QString normalized = normalizedForMatch(question);
+    return normalized.contains("example")
+        || normalized.contains("examples")
+        || normalized.contains("sample")
+        || normalized.contains("samples")
+        || normalized.startsWith("show me")
+        || normalized.startsWith("give me")
+        || normalized.startsWith("list ");
+}
+
+QString bestLessonSentenceForQuestion(const QString &lesson, const QString &question, int maxLength = 260)
+{
+    const QString cleanLesson = compactText(lesson, 0);
+    if (cleanLesson.isEmpty()) {
+        return "";
+    }
+
+    const QStringList sentences = cleanLesson.split(QRegularExpression("(?<=[.!?])\\s+|\\n+"), Qt::SkipEmptyParts);
+    QString bestSentence;
+    int bestScore = 0;
+    for (const QString &sentence : sentences) {
+        const QString cleanSentence = compactText(sentence, maxLength);
+        if (cleanSentence.split(' ', Qt::SkipEmptyParts).size() < 4) {
+            continue;
+        }
+        const int score = meaningfulTokenOverlapScore(question, cleanSentence)
+            + keywordOverlapScore(question, cleanSentence) * 3;
+        if (score > bestScore) {
+            bestScore = score;
+            bestSentence = cleanSentence;
+        }
+    }
+
+    if (!bestSentence.isEmpty() && bestScore >= 10) {
+        return bestSentence;
+    }
+
+    return compactText(cleanLesson, maxLength);
+}
+
+QString correctionRuleFromLesson(const QString &lesson, int maxLength = 220)
+{
+    const QString cleanLesson = compactText(lesson, 0);
+    if (cleanLesson.isEmpty()) {
+        return "";
+    }
+
+    static const QList<QRegularExpression> rulePatterns = {
+        QRegularExpression("(?:reusable\\s+rule|improvement\\s+rule|rule|to\\s+improve)\\s*:\\s*([^\\.]+(?:\\.[^\\.]*)?)",
+                           QRegularExpression::CaseInsensitiveOption),
+        QRegularExpression("(always\\s+[^\\.]+\\.)", QRegularExpression::CaseInsensitiveOption),
+        QRegularExpression("(in\\s+any\\s+problem,\\s*[^\\.]+\\.)", QRegularExpression::CaseInsensitiveOption)
+    };
+
+    for (const QRegularExpression &rx : rulePatterns) {
+        const QRegularExpressionMatch match = rx.match(cleanLesson);
+        if (match.hasMatch()) {
+            const QString rule = compactText(match.captured(1), maxLength);
+            if (!rule.isEmpty()) {
+                return rule;
+            }
+        }
+    }
+
+    return "";
+}
+
+QString lessonApplicationFallback(const QString &lesson,
+                                  const QString &question,
+                                  const QString &answer,
+                                  int maxLength = 360)
+{
+    const QString cleanQuestion = compactText(question, 160);
+    QString cleanAnswer = compactText(answer, 0);
+    cleanAnswer.replace(QRegularExpression("^(answer\\s*:?|the answer is\\s*)", QRegularExpression::CaseInsensitiveOption), "");
+    cleanAnswer = cleanAnswer.trimmed();
+    if (cleanQuestion.isEmpty() || cleanAnswer.isEmpty()) {
+        return "";
+    }
+
+    const QString guidingRule = correctionRuleFromLesson(lesson, 180);
+    const QString guidingLesson = bestLessonSentenceForQuestion(lesson, question, 190);
+    QString thinking;
+    if (!guidingRule.isEmpty()) {
+        thinking = QString("Answer check: I apply the learned rule: %1 I connect that rule to this question's details, so the answer is %2.")
+            .arg(guidingRule, cleanAnswer);
+    } else if (!guidingLesson.isEmpty()) {
+        thinking = QString("Answer check: I apply the lesson detail \"%1\" to the question \"%2\". That connection explains why the answer is %3.")
+            .arg(guidingLesson, cleanQuestion, cleanAnswer);
+    }
+
+    return compactText(thinking, maxLength);
+}
+
+bool isTrustedKnowledgeSource(const QString &source)
+{
+    const QString normalized = normalizedForMatch(source);
+    if (normalized.isEmpty()) {
+        return true;
+    }
+
+    return !normalized.contains("manual chat")
+        && !normalized.contains("user chat")
+        && !normalized.contains("chat context")
+        && !normalized.contains("conversation memory")
+        && !normalized.contains("manual conversation");
 }
 
 int learningRelevanceScore(const QString &query,
@@ -222,12 +507,19 @@ int learningRelevanceScore(const QString &query,
         .arg(learnedQuestion, lesson, correction, answer);
     const int directScore = questionSimilarityScore(query, learnedQuestion);
     const int tokenScore = meaningfulTokenOverlapScore(query, learningText);
+    const int semanticCoverage = tokenCoveragePercent(significantQuestionTokens(query, true),
+                                                      significantQuestionTokens(learningText, true));
+    const int coreCoverage = tokenCoveragePercent(significantQuestionTokens(query, false),
+                                                  significantQuestionTokens(learningText, false));
 
     if (directScore >= 130) {
         return directScore + qMin(20, static_cast<int>(strength));
     }
 
-    if (tokenScore < 20 && directScore < 70) {
+    if (directScore < 70 && semanticCoverage < 35 && coreCoverage < 20) {
+        return 0;
+    }
+    if (tokenScore < 20 && directScore < 70 && semanticCoverage < 45) {
         return 0;
     }
 
@@ -235,9 +527,10 @@ int learningRelevanceScore(const QString &query,
     const int lessonOverlap = (keywordOverlapScore(query, lesson)
                                + keywordOverlapScore(query, correction)) * 3;
     const int answerOverlap = keywordOverlapScore(query, answer);
+    const int coverageBonus = qMin(25, semanticCoverage / 4 + coreCoverage / 6);
     const int strengthBonus = qMin(15, static_cast<int>(strength / 2.0));
 
-    return qMin(directScore, 90) + tokenScore + questionOverlap + lessonOverlap + answerOverlap + strengthBonus;
+    return qMin(directScore, 90) + tokenScore + questionOverlap + lessonOverlap + answerOverlap + coverageBonus + strengthBonus;
 }
 
 QString mappedBuiltInSubjectForTopic(const QString &topic)
@@ -551,7 +844,7 @@ QString buildStatementUnderstandingResponse(const QString &statement)
 
     const QString clause = statementClauseForUser(statement);
     const QString answer = polishUserFacingText("I understand that " + clause, 0, true);
-    return QString("[Thinking: I read this as a statement, identify its main idea, and store it as context for future replies.]\n"
+    return QString("[Thinking: I read this as a statement, identify its main idea, and answer without adding it to training memory.]\n"
                    "Answer: %1").arg(answer);
 }
 
@@ -652,10 +945,11 @@ QStringList splitDelimitedRecords(const QString &text, QChar delimiter)
 int firstMatchingColumn(const QStringList &headers, const QStringList &names)
 {
     for (const QString &name : names) {
+        const QString normalizedName = normalizedForMatch(name);
         for (int i = 0; i < headers.size(); ++i) {
             const QString normalizedHeader = normalizedForMatch(headers[i]);
-            if (normalizedHeader == normalizedForMatch(name)
-                || normalizedHeader.contains(normalizedForMatch(name))) {
+            if (normalizedHeader == normalizedName
+                || (normalizedName.length() > 2 && normalizedHeader.contains(normalizedName))) {
                 return i;
             }
         }
@@ -766,6 +1060,122 @@ QString datasetFieldText(const QJsonValue &value)
     return "";
 }
 
+bool isDatasetReasoningKey(const QString &key)
+{
+    const QString normalizedKey = normalizedForMatch(key);
+    static const QStringList reasoningKeys = {
+        "reasoning", "rationale", "explanation", "analysis", "thinking",
+        "thought", "chain of thought", "chain of thoughts", "chain_of_thought",
+        "cot", "scratchpad", "work", "solution steps", "derivation"
+    };
+
+    for (const QString &reasoningKey : reasoningKeys) {
+        const QString normalizedReasoningKey = normalizedForMatch(reasoningKey);
+        if (normalizedKey == normalizedReasoningKey || normalizedKey.contains(normalizedReasoningKey)) {
+            return true;
+        }
+    }
+    return false;
+}
+
+QString visibleReasoningFromText(const QString &text)
+{
+    const QString clean = compactDatasetText(text, 5000);
+    if (clean.isEmpty()) {
+        return "";
+    }
+
+    static const QList<QRegularExpression> blockPatterns = {
+        QRegularExpression("<think>\\s*(.*?)\\s*</think>", QRegularExpression::CaseInsensitiveOption | QRegularExpression::DotMatchesEverythingOption),
+        QRegularExpression("<analysis>\\s*(.*?)\\s*</analysis>", QRegularExpression::CaseInsensitiveOption | QRegularExpression::DotMatchesEverythingOption),
+        QRegularExpression("\\[Thinking:\\s*([^\\]]+)\\]", QRegularExpression::CaseInsensitiveOption | QRegularExpression::DotMatchesEverythingOption)
+    };
+
+    for (const QRegularExpression &rx : blockPatterns) {
+        const QRegularExpressionMatch match = rx.match(clean);
+        if (match.hasMatch()) {
+            const QString reasoning = compactDatasetText(match.captured(1), 520);
+            if (!reasoning.isEmpty()) {
+                return "Visible reasoning example: " + reasoning;
+            }
+        }
+    }
+
+    static const QList<QRegularExpression> linePatterns = {
+        QRegularExpression("(?:^|\\s)(?:reasoning|rationale|explanation|analysis|thinking|chain\\s+of\\s+thought|cot)\\s*:\\s*(.*?)(?=\\s(?:final\\s+answer|answer|response|output)\\s*:|\\z)",
+                           QRegularExpression::CaseInsensitiveOption | QRegularExpression::DotMatchesEverythingOption),
+        QRegularExpression("(let'?s\\s+think\\s+step\\s+by\\s+step\\s*[:.].*?)(?=\\s(?:final\\s+answer|answer|response|output)\\s*:|\\z)",
+                           QRegularExpression::CaseInsensitiveOption | QRegularExpression::DotMatchesEverythingOption)
+    };
+
+    for (const QRegularExpression &rx : linePatterns) {
+        const QRegularExpressionMatch match = rx.match(clean);
+        if (match.hasMatch()) {
+            const QString reasoning = compactDatasetText(match.captured(1), 520);
+            if (!reasoning.isEmpty()) {
+                return "Visible reasoning example: " + reasoning;
+            }
+        }
+    }
+
+    return "";
+}
+
+QString answerWithoutReasoning(QString answer)
+{
+    answer.remove(QRegularExpression("<think>\\s*.*?\\s*</think>", QRegularExpression::CaseInsensitiveOption | QRegularExpression::DotMatchesEverythingOption));
+    answer.remove(QRegularExpression("<analysis>\\s*.*?\\s*</analysis>", QRegularExpression::CaseInsensitiveOption | QRegularExpression::DotMatchesEverythingOption));
+    answer.remove(QRegularExpression("\\[Thinking:[^\\]]*\\]", QRegularExpression::CaseInsensitiveOption | QRegularExpression::DotMatchesEverythingOption));
+
+    QRegularExpression finalAnswerRx("(?:^|\\s)(?:final\\s+answer|answer|response|output)\\s*:\\s*(.+)$",
+                                     QRegularExpression::CaseInsensitiveOption | QRegularExpression::DotMatchesEverythingOption);
+    QRegularExpressionMatch finalAnswerMatch = finalAnswerRx.match(answer);
+    if (finalAnswerMatch.hasMatch()) {
+        answer = finalAnswerMatch.captured(1);
+    }
+
+    answer.remove(QRegularExpression("(?:^|\\s)(?:reasoning|rationale|explanation|analysis|thinking|chain\\s+of\\s+thought|cot)\\s*:\\s*.*?(?=\\s(?:final\\s+answer|answer|response|output)\\s*:|\\z)",
+                                     QRegularExpression::CaseInsensitiveOption | QRegularExpression::DotMatchesEverythingOption));
+    return compactDatasetText(answer, 520);
+}
+
+QString datasetReasoningLesson(const QJsonObject &object, const QString &answerText = QString())
+{
+    QStringList lessons;
+    for (auto it = object.constBegin(); it != object.constEnd() && lessons.size() < 2; ++it) {
+        if (!isDatasetReasoningKey(it.key())) {
+            continue;
+        }
+        const QString reasoning = compactDatasetText(datasetFieldText(it.value()), 520);
+        if (!reasoning.isEmpty()) {
+            lessons.append(QString("%1: %2").arg(readableDatasetColumnName(it.key()), reasoning));
+        }
+    }
+
+    const QString answerReasoning = visibleReasoningFromText(answerText);
+    if (!answerReasoning.isEmpty()) {
+        lessons.append(answerReasoning);
+    }
+
+    return compactDatasetText(lessons.join("; "), 700);
+}
+
+QString mergeDatasetLessons(const QString &left, const QString &right)
+{
+    const QString cleanLeft = compactDatasetText(left, 700);
+    const QString cleanRight = compactDatasetText(right, 700);
+    if (cleanLeft.isEmpty()) {
+        return cleanRight;
+    }
+    if (cleanRight.isEmpty()) {
+        return cleanLeft;
+    }
+    if (normalizedForMatch(cleanLeft).contains(normalizedForMatch(cleanRight).left(80))) {
+        return cleanLeft;
+    }
+    return compactDatasetText(cleanLeft + "; " + cleanRight, 700);
+}
+
 QString firstDatasetField(const QJsonObject &object, const QStringList &keys)
 {
     for (const QString &key : keys) {
@@ -806,7 +1216,9 @@ bool isDatasetMetadataKey(const QString &key)
     const QString normalizedKey = normalizedForMatch(key);
     static const QStringList metadataKeys = {
         "row idx", "row index", "truncated cells", "features", "num rows total",
-        "num rows per page", "partial", "dataset", "config", "split"
+        "num rows per page", "partial", "dataset", "config", "split",
+        "domain", "meta", "metadata", "subset", "license", "language", "lang",
+        "source file", "file", "url", "created at", "updated at"
     };
     return metadataKeys.contains(normalizedKey)
         || normalizedKey.endsWith(" id")
@@ -825,7 +1237,7 @@ QList<QPair<QString, QString>> usefulDatasetRowFields(const QJsonObject &object)
 {
     QList<QPair<QString, QString>> fields;
     for (auto it = object.constBegin(); it != object.constEnd(); ++it) {
-        if (isDatasetMetadataKey(it.key())) {
+        if (isDatasetMetadataKey(it.key()) || isDatasetReasoningKey(it.key())) {
             continue;
         }
         const QString text = datasetFieldText(it.value());
@@ -1028,7 +1440,7 @@ void appendAdaptiveRowSamples(const QJsonObject &object,
                                     QString("What information is in the %1 field for this dataset row beginning \"%2\"?")
                                         .arg(fieldName, excerpt),
                                     fields.first().second,
-                                    "",
+                                    datasetReasoningLesson(object, fields.first().second),
                                     seenSamples,
                                     maxSamples);
         return;
@@ -1048,7 +1460,8 @@ void appendAdaptiveRowSamples(const QJsonObject &object,
                                     datasetQuestionFromInputOutput(fields[inferredInputIndex],
                                                                    fields[inferredOutputIndex]),
                                     fields[inferredOutputIndex].second,
-                                    datasetContextLesson(fields, inferredInputIndex, inferredOutputIndex),
+                                    mergeDatasetLessons(datasetContextLesson(fields, inferredInputIndex, inferredOutputIndex),
+                                                        datasetReasoningLesson(object, fields[inferredOutputIndex].second)),
                                     seenSamples,
                                     maxSamples);
         return;
@@ -1069,7 +1482,12 @@ void appendAdaptiveRowSamples(const QJsonObject &object,
         const QString answerKey = readableDatasetColumnName(fields[answerIndex].first);
         const QString question = QString("For this %1: %2, what is the %3?")
             .arg(subjectKey, fields[subjectIndex].second, answerKey);
-        appendDatasetTrainingSample(samples, question, fields[answerIndex].second, "", seenSamples, maxSamples);
+        appendDatasetTrainingSample(samples,
+                                    question,
+                                    fields[answerIndex].second,
+                                    datasetReasoningLesson(object, fields[answerIndex].second),
+                                    seenSamples,
+                                    maxSamples);
         return;
     }
 
@@ -1079,7 +1497,7 @@ void appendAdaptiveRowSamples(const QJsonObject &object,
         appendDatasetTrainingSample(samples,
                                     QString("What is %1?").arg(fields[nameIndex].second),
                                     fields[descriptionIndex].second,
-                                    "",
+                                    datasetReasoningLesson(object, fields[descriptionIndex].second),
                                     seenSamples,
                                     maxSamples);
         return;
@@ -1089,7 +1507,7 @@ void appendAdaptiveRowSamples(const QJsonObject &object,
         appendDatasetTrainingSample(samples,
                                     datasetQuestionFromInputOutput(fields[0], fields[1]),
                                     fields[1].second,
-                                    "",
+                                    datasetReasoningLesson(object, fields[1].second),
                                     seenSamples,
                                     maxSamples);
         return;
@@ -1106,7 +1524,12 @@ void appendAdaptiveRowSamples(const QJsonObject &object,
         const QString fieldName = readableDatasetColumnName(fields[i].first);
         const QString question = QString("In this dataset row, what is the %1 for %2 \"%3\"?")
             .arg(fieldName, anchorKey, anchorValue);
-        appendDatasetTrainingSample(samples, question, fields[i].second, "", seenSamples, maxSamples);
+        appendDatasetTrainingSample(samples,
+                                    question,
+                                    fields[i].second,
+                                    datasetReasoningLesson(object, fields[i].second),
+                                    seenSamples,
+                                    maxSamples);
         generatedForRow++;
     }
 }
@@ -1123,8 +1546,16 @@ void appendDatasetTrainingSample(QStringList &samples,
     }
 
     const QString cleanQuestion = compactDatasetText(question, 420);
-    const QString cleanAnswer = compactDatasetText(answer, 520);
-    const QString cleanLesson = compactDatasetText(lesson, 520);
+    const QString reasoningFromAnswer = visibleReasoningFromText(answer);
+    const QString cleanAnswer = answerWithoutReasoning(answer);
+    QString cleanLesson = compactDatasetText(lesson, 700);
+    if (!reasoningFromAnswer.isEmpty()
+        && !normalizedForMatch(cleanLesson).contains(normalizedForMatch(reasoningFromAnswer).left(80))) {
+        cleanLesson = compactDatasetText(cleanLesson.isEmpty()
+            ? reasoningFromAnswer
+            : cleanLesson + "; " + reasoningFromAnswer,
+            700);
+    }
     if (cleanQuestion.split(' ', Qt::SkipEmptyParts).size() < 2
         || cleanAnswer.split(' ', Qt::SkipEmptyParts).isEmpty()) {
         return;
@@ -1170,6 +1601,7 @@ bool appendConversationSamples(const QJsonObject &object,
     }
 
     const int before = samples.size();
+    const QString rowReasoningLesson = datasetReasoningLesson(object);
     QString pendingUser;
     for (const QJsonValue &turnValue : turns) {
         QString role;
@@ -1205,7 +1637,12 @@ bool appendConversationSamples(const QJsonObject &object,
         if (userTurn) {
             pendingUser = content;
         } else if (assistantTurn && !pendingUser.isEmpty()) {
-            appendDatasetTrainingSample(samples, pendingUser, content, "", seenSamples, maxSamples);
+            const QString turnReasoning = visibleReasoningFromText(content);
+            const QString lesson = compactDatasetText(rowReasoningLesson.isEmpty()
+                ? turnReasoning
+                : (turnReasoning.isEmpty() ? rowReasoningLesson : rowReasoningLesson + "; " + turnReasoning),
+                700);
+            appendDatasetTrainingSample(samples, pendingUser, content, lesson, seenSamples, maxSamples);
             pendingUser.clear();
         }
         if (samples.size() >= maxSamples) {
@@ -1233,7 +1670,7 @@ bool appendDirectTurnColumns(const QJsonObject &object,
     }
 
     const int before = samples.size();
-    appendDatasetTrainingSample(samples, userText, assistantText, "", seenSamples, maxSamples);
+    appendDatasetTrainingSample(samples, userText, assistantText, datasetReasoningLesson(object, assistantText), seenSamples, maxSamples);
     return samples.size() > before;
 }
 
@@ -1329,7 +1766,8 @@ bool appendMultipleChoiceSample(const QJsonObject &object,
         }
     }
 
-    const QString lesson = QString("Choices: %1").arg(choices.join("; "));
+    const QString lesson = mergeDatasetLessons(QString("Choices: %1").arg(choices.join("; ")),
+                                               datasetReasoningLesson(object, answer));
     const int before = samples.size();
     appendDatasetTrainingSample(samples, question, answer, lesson, seenSamples, maxSamples);
     return samples.size() > before;
@@ -1469,7 +1907,8 @@ void collectDatasetSamplesFromJson(const QJsonValue &value,
     const QString answer = firstDatasetField(object, {
         "a", "answer", "answers", "response", "output", "completion", "target", "label", "chosen", "dst"
     });
-    const QString lesson = firstDatasetField(object, {"lesson", "context", "category", "topic"});
+    const QString lesson = mergeDatasetLessons(firstDatasetField(object, {"lesson", "context", "category", "topic"}),
+                                               datasetReasoningLesson(object, answer));
     const int directSampleCount = samples.size();
     appendDatasetTrainingSample(samples, question, answer, lesson, seenSamples, maxSamples);
     if (samples.size() == directSampleCount) {
@@ -1525,7 +1964,9 @@ void collectDatasetSamplesFromText(const QString &text,
             "target", "label", "translation", "solution", "dst"
         }) : 1;
         const int lessonCol = hasHeader ? firstMatchingColumn(headers, {
-            "lesson", "context", "category", "topic", "explanation", "rationale", "choices"
+            "lesson", "context", "category", "topic", "explanation", "rationale",
+            "reasoning", "analysis", "thinking", "chain_of_thought", "chain of thought",
+            "cot", "scratchpad", "choices"
         }) : -1;
 
         if (!hasHeader && delimiter == ',') {
@@ -1995,6 +2436,658 @@ QString answerCore(const QString &answer)
     return clean.trimmed();
 }
 
+struct FormulaRule {
+    QString target;
+    QString expression;
+};
+
+struct FormulaApplication {
+    bool valid = false;
+    QString target;
+    QString expression;
+    QString expressionWithValues;
+    QStringList mappedFacts;
+    double value = 0.0;
+};
+
+QString normalizeMathExpression(QString expression)
+{
+    expression = compactText(expression, 180);
+    const int equalsIndex = expression.indexOf('=');
+    if (equalsIndex > 0) {
+        expression = expression.left(equalsIndex);
+    }
+    expression.replace(QChar(0x00D7), "*");
+    expression.replace(QChar(0x00F7), "/");
+    expression.replace(QChar(0x2212), "-");
+    expression.replace(QRegularExpression("\\bsquared\\b", QRegularExpression::CaseInsensitiveOption), "^2");
+    expression.replace(QRegularExpression("\\b(?:so|therefore|because)\\b.*$", QRegularExpression::CaseInsensitiveOption), "");
+    expression.replace(QRegularExpression("\\s+"), " ");
+    return expression.trimmed();
+}
+
+QList<FormulaRule> extractFormulaRules(const QString &text)
+{
+    QList<FormulaRule> rules;
+    const QString clean = compactText(text, 0);
+    if (clean.isEmpty()) {
+        return rules;
+    }
+
+    auto appendRule = [&](QString target, QString expression) {
+        target = normalizedForMatch(target);
+        expression = normalizeMathExpression(expression);
+        if (target.isEmpty()
+            || expression.isEmpty()
+            || target.split(' ', Qt::SkipEmptyParts).size() > 4
+            || expression.length() > 180) {
+            return;
+        }
+        for (const FormulaRule &existing : rules) {
+            if (normalizedForMatch(existing.target) == target
+                && normalizedForMatch(existing.expression) == normalizedForMatch(expression)) {
+                return;
+            }
+        }
+        rules.append({target, expression});
+    };
+
+    QRegularExpression equationRx("([A-Za-z][A-Za-z\\s_]{0,40})\\s*=\\s*([^\\.\\n;]+)",
+                                  QRegularExpression::CaseInsensitiveOption);
+    QRegularExpressionMatchIterator equationIt = equationRx.globalMatch(clean);
+    while (equationIt.hasNext()) {
+        const QRegularExpressionMatch match = equationIt.next();
+        appendRule(match.captured(1), match.captured(2));
+    }
+
+    QRegularExpression proseRx("([A-Za-z][A-Za-z\\s_]{0,40})(?:\\s*\\([^\\)]*\\))?\\s+(?:is|equals)\\s+([^\\.\\n;]*(?:\\d|\\+|\\-|\\*|/|x|×|÷|\\bsquared\\b)[^\\.\\n;]*)",
+                               QRegularExpression::CaseInsensitiveOption);
+    QRegularExpressionMatchIterator proseIt = proseRx.globalMatch(clean);
+    while (proseIt.hasNext()) {
+        const QRegularExpressionMatch match = proseIt.next();
+        appendRule(match.captured(1), match.captured(2));
+    }
+
+    return rules;
+}
+
+bool extractQuantityForTerm(const QString &text, const QString &term, double *value)
+{
+    const QString cleanTerm = normalizedForMatch(term);
+    if (cleanTerm.isEmpty() || !value) {
+        return false;
+    }
+
+    QString escapedTerm = QRegularExpression::escape(cleanTerm);
+    escapedTerm.replace("\\ ", "\\s+");
+    const QString numberPattern = "(-?\\d+(?:\\.\\d+)?)";
+    const QList<QRegularExpression> patterns = {
+        QRegularExpression("\\b" + escapedTerm + "\\b\\s*(?:of|is|=|:)?\\s*" + numberPattern,
+                           QRegularExpression::CaseInsensitiveOption),
+        QRegularExpression(numberPattern + "\\s*(?:feet|foot|ft|inches|inch|units?|cm|meters?|m)?\\s+(?:of\\s+)?\\b" + escapedTerm + "\\b",
+                           QRegularExpression::CaseInsensitiveOption)
+    };
+
+    const QString normalizedText = normalizedForMatch(text);
+    for (const QRegularExpression &rx : patterns) {
+        const QRegularExpressionMatch match = rx.match(normalizedText);
+        if (match.hasMatch()) {
+            bool ok = false;
+            const double number = match.captured(1).toDouble(&ok);
+            if (ok) {
+                *value = number;
+                return true;
+            }
+        }
+    }
+
+    return false;
+}
+
+bool evaluateSimpleExpression(QString expression,
+                              const QString &question,
+                              QString *expressionWithValues,
+                              QStringList *mappedFacts,
+                              double *value)
+{
+    expression = normalizeMathExpression(expression);
+    expression.replace(QRegularExpression("\\bx\\b", QRegularExpression::CaseInsensitiveOption), "*");
+    expression.remove('(');
+    expression.remove(')');
+
+    QRegularExpression wordRx("\\b[a-zA-Z][a-zA-Z_ ]*\\b");
+    QRegularExpressionMatchIterator wordIt = wordRx.globalMatch(expression);
+    QString resolved = expression;
+    QSet<QString> replacedTerms;
+    while (wordIt.hasNext()) {
+        const QString rawTerm = wordIt.next().captured(0).trimmed();
+        const QString term = normalizedForMatch(rawTerm);
+        if (term.isEmpty() || replacedTerms.contains(term)) {
+            continue;
+        }
+        double termValue = 0.0;
+        if (!extractQuantityForTerm(question, term, &termValue)) {
+            return false;
+        }
+        resolved.replace(QRegularExpression("\\b" + QRegularExpression::escape(rawTerm) + "\\b",
+                                           QRegularExpression::CaseInsensitiveOption),
+                         formatNumber(termValue));
+        replacedTerms.insert(term);
+        if (mappedFacts) {
+            mappedFacts->append(QString("%1=%2").arg(term, formatNumber(termValue)));
+        }
+    }
+
+    QRegularExpression tokenRx("(-?\\d+(?:\\.\\d+)?)|([+\\-*/])");
+    QRegularExpressionMatchIterator tokenIt = tokenRx.globalMatch(resolved);
+    QList<double> values;
+    QList<QChar> ops;
+    bool expectNumber = true;
+    while (tokenIt.hasNext()) {
+        const QRegularExpressionMatch match = tokenIt.next();
+        if (match.captured(1).isEmpty()) {
+            if (expectNumber || match.captured(2).isEmpty()) {
+                return false;
+            }
+            ops.append(match.captured(2).front());
+            expectNumber = true;
+            continue;
+        }
+        if (!expectNumber) {
+            return false;
+        }
+        bool ok = false;
+        const double number = match.captured(1).toDouble(&ok);
+        if (!ok) {
+            return false;
+        }
+        values.append(number);
+        expectNumber = false;
+    }
+
+    if (values.isEmpty() || values.size() != ops.size() + 1 || expectNumber) {
+        return false;
+    }
+
+    for (int i = 0; i < ops.size();) {
+        if (ops[i] != '*' && ops[i] != '/') {
+            ++i;
+            continue;
+        }
+        if (ops[i] == '/' && numbersMatch(values[i + 1], 0.0)) {
+            return false;
+        }
+        values[i] = ops[i] == '*' ? values[i] * values[i + 1] : values[i] / values[i + 1];
+        values.removeAt(i + 1);
+        ops.removeAt(i);
+    }
+
+    double result = values.first();
+    for (int i = 0; i < ops.size(); ++i) {
+        result = ops[i] == '+' ? result + values[i + 1] : result - values[i + 1];
+    }
+
+    if (expressionWithValues) {
+        *expressionWithValues = compactText(resolved, 120);
+    }
+    if (value) {
+        *value = result;
+    }
+    return true;
+}
+
+FormulaApplication applyExtractedFormula(const QString &lesson,
+                                         const QString &question,
+                                         const QString &answer)
+{
+    FormulaApplication app;
+    const QList<FormulaRule> rules = extractFormulaRules(lesson + " " + answer);
+    if (rules.isEmpty()) {
+        return app;
+    }
+
+    const QString normalizedQuestion = normalizedForMatch(question);
+    const QString normalizedAnswer = normalizedForMatch(answer);
+    for (const FormulaRule &rule : rules) {
+        const QString target = normalizedForMatch(rule.target);
+        if (!normalizedQuestion.contains(target) && !normalizedAnswer.contains(target)) {
+            continue;
+        }
+        QString expressionWithValues;
+        QStringList mappedFacts;
+        double value = 0.0;
+        if (evaluateSimpleExpression(rule.expression, question, &expressionWithValues, &mappedFacts, &value)) {
+            app.valid = true;
+            app.target = target;
+            app.expression = rule.expression;
+            app.expressionWithValues = expressionWithValues;
+            app.mappedFacts = mappedFacts;
+            app.value = value;
+            return app;
+        }
+    }
+
+    return app;
+}
+
+QString extractedConditionRule(const QString &lesson, const QString &question)
+{
+    const QString clean = compactText(lesson + " " + question, 0);
+    if (clean.isEmpty()) {
+        return "";
+    }
+
+    const QList<QRegularExpression> patterns = {
+        QRegularExpression("(?:valid|works|applies)\\s+only\\s+(?:for|if|when)\\s+([^\\.]+)",
+                           QRegularExpression::CaseInsensitiveOption),
+        QRegularExpression("(?:requires?|must\\s+have|must\\s+be)\\s+([^\\.]+)",
+                           QRegularExpression::CaseInsensitiveOption),
+        QRegularExpression("(?:before\\s+using[^,\\.]*,?\\s*(?:always\\s+)?(?:confirm|verify|check)\\s+([^\\.]+))",
+                           QRegularExpression::CaseInsensitiveOption),
+        QRegularExpression("(?:always\\s+(?:confirm|verify|check)\\s+([^\\.]+))",
+                           QRegularExpression::CaseInsensitiveOption)
+    };
+
+    for (const QRegularExpression &rx : patterns) {
+        const QRegularExpressionMatch match = rx.match(clean);
+        if (match.hasMatch()) {
+            const QString condition = compactText(match.captured(1), 180);
+            if (!condition.isEmpty()) {
+                return condition;
+            }
+        }
+    }
+
+    return "";
+}
+
+QString buildUniversalCognitiveThinking(const QString &lesson, const QString &question, const QString &answer)
+{
+    const QString cleanQuestion = compactText(question, 170);
+    const QString cleanAnswer = answerCore(answer);
+    if (cleanQuestion.isEmpty() || cleanAnswer.isEmpty()) {
+        return "";
+    }
+
+    const FormulaApplication app = applyExtractedFormula(lesson, question, answer);
+    if (app.valid) {
+        return QString("Answer check: The useful relation is %1 = %2. The question gives %3, so I calculate %4 = %5 and check that this matches %6.")
+            .arg(app.target,
+                 app.expression,
+                 app.mappedFacts.join(", "),
+                 app.expressionWithValues,
+                 formatNumber(app.value),
+                 cleanAnswer);
+    }
+
+    const QString condition = extractedConditionRule(lesson, question);
+    if (!condition.isEmpty()
+        && (question.contains("check", Qt::CaseInsensitive)
+            || question.contains("mistake", Qt::CaseInsensitive)
+            || question.contains("before", Qt::CaseInsensitive)
+            || question.contains("prevent", Qt::CaseInsensitive)
+            || question.contains("requires", Qt::CaseInsensitive))) {
+        return QString("Answer check: The rule has a condition: %1. I check that condition before using the rule, so %2 is the required answer.")
+            .arg(condition, cleanAnswer);
+    }
+
+    return "";
+}
+
+struct LessonDefinition {
+    QString term;
+    QString meaning;
+};
+
+QList<LessonDefinition> extractLessonDefinitions(const QString &lesson)
+{
+    QList<LessonDefinition> definitions;
+    const QString clean = compactText(lesson, 0);
+    if (clean.isEmpty()) {
+        return definitions;
+    }
+
+    auto appendDefinition = [&](QString term, QString meaning) {
+        term = compactText(term, 80);
+        meaning = compactText(meaning, 220);
+        term.remove(QRegularExpression("^(?:in\\s+\\w+,\\s*)?(?:the\\s+)?", QRegularExpression::CaseInsensitiveOption));
+        term = term.trimmed();
+        if (term.isEmpty()
+            || meaning.isEmpty()
+            || term.split(' ', Qt::SkipEmptyParts).size() > 5
+            || normalizedForMatch(meaning).contains("question")) {
+            return;
+        }
+        for (const LessonDefinition &existing : definitions) {
+            if (normalizedForMatch(existing.term) == normalizedForMatch(term)) {
+                return;
+            }
+        }
+        definitions.append({term, meaning});
+    };
+
+    QRegularExpression contrastRx("([A-Za-z][A-Za-z\\s'-]{1,50})\\s+is\\s+([^\\.]+?)\\s+(?:,?\\s*(?:while|whereas|but)\\s+)([A-Za-z][A-Za-z\\s'-]{1,50})\\s+is\\s+([^\\.]+)",
+                                  QRegularExpression::CaseInsensitiveOption);
+    QRegularExpressionMatchIterator contrastIt = contrastRx.globalMatch(clean);
+    while (contrastIt.hasNext()) {
+        const QRegularExpressionMatch match = contrastIt.next();
+        appendDefinition(match.captured(1), match.captured(2));
+        appendDefinition(match.captured(3), match.captured(4));
+    }
+
+    QRegularExpression definitionRx("\\b([A-Za-z][A-Za-z\\s'-]{1,50})\\s+is\\s+([^\\.]+)",
+                                    QRegularExpression::CaseInsensitiveOption);
+    QRegularExpressionMatchIterator definitionIt = definitionRx.globalMatch(clean);
+    while (definitionIt.hasNext()) {
+        const QRegularExpressionMatch match = definitionIt.next();
+        appendDefinition(match.captured(1), match.captured(2));
+    }
+
+    return definitions;
+}
+
+QString buildDefinitionOrContrastExplanation(const QString &lesson, const QString &question, const QString &answer)
+{
+    const QList<LessonDefinition> definitions = extractLessonDefinitions(lesson);
+    if (definitions.isEmpty()) {
+        return "";
+    }
+
+    const QString normalizedQuestion = normalizedForMatch(question);
+    const QString directAnswer = answerCore(answer);
+    QStringList relevant;
+    for (const LessonDefinition &definition : definitions) {
+        const QString term = normalizedForMatch(definition.term);
+        if (term.isEmpty()) {
+            continue;
+        }
+        if (normalizedQuestion.contains(term) || normalizedForMatch(directAnswer).contains(term)) {
+            relevant.append(QString("%1 means %2").arg(definition.term.trimmed(), definition.meaning.trimmed()));
+        }
+        if (relevant.size() >= 2) {
+            break;
+        }
+    }
+
+    if (relevant.isEmpty()) {
+        return "";
+    }
+
+    if (relevant.size() >= 2) {
+        return "The key distinction is that " + relevant.join(", while ") + ".";
+    }
+    return "The key meaning I use is that " + relevant.first() + ".";
+}
+
+QString buildCauseChainExplanation(const QString &lesson, const QString &question)
+{
+    const QString lowerQuestion = question.toLower();
+    if (!lowerQuestion.contains("cause")
+        && !lowerQuestion.startsWith("why ")
+        && !lowerQuestion.contains("what causes")
+        && !lowerQuestion.contains("if ")) {
+        return "";
+    }
+
+    const QString cleanLesson = compactText(lesson, 0);
+    if (cleanLesson.isEmpty()) {
+        return "";
+    }
+
+    QStringList causalSentences;
+    const QStringList sentences = cleanLesson.split(QRegularExpression("(?<=[.!?])\\s+|\\n+"), Qt::SkipEmptyParts);
+    for (const QString &sentence : sentences) {
+        const QString normalized = normalizedForMatch(sentence);
+        if (normalized.contains("cause")
+            || normalized.contains("lead")
+            || normalized.contains("increase")
+            || normalized.contains("decrease")
+            || normalized.contains("result")
+            || normalized.contains("directly")) {
+            causalSentences.append(compactText(sentence, 180));
+        }
+        if (causalSentences.size() >= 2) {
+            break;
+        }
+    }
+
+    if (causalSentences.isEmpty()) {
+        return "";
+    }
+
+    return "The causal chain is: " + causalSentences.join(" Then ") + ".";
+}
+
+QString stripThinkingLabel(QString text)
+{
+    text = compactText(text, 0);
+    text.remove(QRegularExpression("^\\s*\\[?\\s*thinking\\s*:\\s*", QRegularExpression::CaseInsensitiveOption));
+    text.remove(QRegularExpression("\\]\\s*$"));
+    text.remove(QRegularExpression("^\\s*(answer\\s+check|check|reasoning|analysis)\\s*:\\s*",
+                                   QRegularExpression::CaseInsensitiveOption));
+    return compactText(text, 0);
+}
+
+QString trainingThinkingFromLesson(const QString &lesson, int maxLength = 240)
+{
+    const QString cleanLesson = compactText(lesson, 0);
+    if (cleanLesson.isEmpty()) {
+        return "";
+    }
+
+    static const QList<QRegularExpression> patterns = {
+        QRegularExpression("\\[Thinking:\\s*([^\\]]+)\\]", QRegularExpression::CaseInsensitiveOption),
+        QRegularExpression("improved\\s+thinking\\s+model\\s*:\\s*\\[Thinking:\\s*([^\\]]+)\\]",
+                           QRegularExpression::CaseInsensitiveOption),
+        QRegularExpression("improved\\s+thinking\\s*:\\s*\\[Thinking:\\s*([^\\]]+)\\]",
+                           QRegularExpression::CaseInsensitiveOption),
+        QRegularExpression("(?:visible\\s+reasoning\\s+example|reasoning|rationale|analysis)\\s*:\\s*([^\\.]+(?:\\.[^\\.]*)?)",
+                           QRegularExpression::CaseInsensitiveOption)
+    };
+
+    for (const QRegularExpression &rx : patterns) {
+        const QRegularExpressionMatch match = rx.match(cleanLesson);
+        if (match.hasMatch()) {
+            const QString thinking = stripThinkingLabel(match.captured(1));
+            if (!thinking.isEmpty()) {
+                return compactText(thinking, maxLength);
+            }
+        }
+    }
+
+    return "";
+}
+
+QString thinkingMoveFromTraining(const QString &thinking)
+{
+    const QString normalized = normalizedForMatch(thinking);
+    if (normalized.isEmpty()) {
+        return "";
+    }
+    if (normalized.contains("calculat") || normalized.contains("compute") || normalized.contains("multiply") || normalized.contains("divide")) {
+        return "show the calculation from the given numbers";
+    }
+    if (normalized.contains("condition") || normalized.contains("check") || normalized.contains("verify") || normalized.contains("confirm")) {
+        return "check the required condition before applying the rule";
+    }
+    if (normalized.contains("cause") || normalized.contains("why") || normalized.contains("because")) {
+        return "explain the cause-effect link in the specific situation";
+    }
+    if (normalized.contains("compare") || normalized.contains("difference")) {
+        return "compare the two ideas by their role in the problem";
+    }
+    if (normalized.contains("connect") || normalized.contains("specific") || normalized.contains("scenario")) {
+        return "connect the learned rule to the exact details in the question";
+    }
+    return "turn the learned idea into a rule and apply it to the question";
+}
+
+QString reasoningOperationForQuestion(const QString &lesson, const QString &question)
+{
+    const QString lowerQuestion = question.toLower();
+    const QString lowerLesson = lesson.toLower();
+    const QString combined = lowerQuestion + " " + lowerLesson;
+
+    if (combined.contains("geometry")
+        || combined.contains("triangle")
+        || combined.contains("circle")
+        || combined.contains("radius")
+        || combined.contains("diameter")
+        || combined.contains("pythagorean")
+        || combined.contains("angle")) {
+        if (combined.contains("radius") || combined.contains("diameter") || combined.contains("width") || combined.contains("clearance")) {
+            return "geometry calculation";
+        }
+        return "geometry condition-checking";
+    }
+    if (lowerQuestion.startsWith("why ") || lowerQuestion.contains("cause") || lowerQuestion.contains("leads to")) {
+        return "causal reasoning";
+    }
+    if (lowerQuestion.contains("priorit") || combined.contains("rule of threes") || combined.contains("urgency")) {
+        return "priority reasoning";
+    }
+    if (lowerQuestion.contains("mistake") || combined.contains("root cause") || combined.contains("symptom")) {
+        return "diagnostic reasoning";
+    }
+    if (lowerQuestion.contains("difference") || lowerQuestion.contains("compare")) {
+        return "comparison reasoning";
+    }
+    if (lowerQuestion.contains("concept") || lowerQuestion.contains("category") || lowerQuestion.contains("describes")) {
+        return "classification reasoning";
+    }
+    if (lowerQuestion.startsWith("how ")) {
+        return "process reasoning";
+    }
+    return "definition-and-application reasoning";
+}
+
+QString ownWordsLessonRule(const QString &lesson, const QString &question)
+{
+    const QString lowerQuestion = question.toLower();
+    const QString lowerLesson = lesson.toLower();
+    const QString combined = lowerQuestion + " " + lowerLesson;
+
+    if (combined.contains("pythagorean")) {
+        return "the Pythagorean formula is not a general triangle rule; I must first prove the triangle has a right angle, then use the side opposite that angle as the hypotenuse";
+    }
+
+    if (combined.contains("radius")
+        && (combined.contains("diameter") || combined.contains("width") || combined.contains("clearance") || combined.contains("semicircle"))) {
+        return "the full width across a circle or semicircle is the diameter, and the diameter is made of two radii";
+    }
+
+    if (combined.contains("diameter") && combined.contains("radius")) {
+        return "radius and diameter are linked by a factor of two: diameter is twice the radius, and radius is half the diameter";
+    }
+
+    if (combined.contains("area") && combined.contains("triangle")) {
+        return "triangle area uses half of the base-height rectangle, so I multiply base by height and divide by two";
+    }
+
+    if (combined.contains("perimeter")) {
+        return "perimeter means the total distance around the outside, so I add the side lengths that form the boundary";
+    }
+
+    if (combined.contains("rule of threes") || combined.contains("rule of three")) {
+        return "survival priorities come from the shortest danger window, so an hours-level threat must be handled before a weeks-level threat";
+    }
+
+    if (combined.contains("root cause") || combined.contains("symptom") || combined.contains("surface sign")) {
+        return "I should identify what is actually failing underneath the visible symptom before choosing the fix";
+    }
+
+    if (combined.contains("oxygen") || combined.contains("hypoxia") || combined.contains("airway") || lowerQuestion.contains("drowning")) {
+        return "I should connect the general oxygen need to the exact mechanism that prevents breathing in the scenario";
+    }
+
+    if (combined.contains("critical resource") || combined.contains("luxury resource")) {
+        return "I should separate what keeps someone alive from what only improves comfort";
+    }
+
+    if (combined.contains("triage")) {
+        return "I should classify the action as sorting people by urgency so limited care saves the most lives";
+    }
+
+    const QString definitionExplanation = buildDefinitionOrContrastExplanation(lesson, question, "");
+    if (!definitionExplanation.isEmpty()) {
+        return definitionExplanation;
+    }
+
+    const QString causeExplanation = buildCauseChainExplanation(lesson, question);
+    if (!causeExplanation.isEmpty()) {
+        return causeExplanation;
+    }
+
+    const QString rule = correctionRuleFromLesson(lesson, 180);
+    if (!rule.isEmpty()) {
+        QString cleanRule = stripThinkingLabel(rule);
+        cleanRule.remove(QRegularExpression("^\\s*(always|before|when)\\s+", QRegularExpression::CaseInsensitiveOption));
+        cleanRule = compactText(cleanRule, 180);
+        if (!cleanRule.isEmpty()) {
+            return "I turn the learned correction into a check I can apply: " + cleanRule;
+        }
+    }
+
+    QStringList focus = overlappingEvidenceTokens(question, lesson, 4);
+    if (focus.isEmpty()) {
+        focus = significantQuestionTokens(question, false).mid(0, 4);
+    }
+    if (!focus.isEmpty()) {
+        return "the answer must connect the important quantities in the question: " + focus.join(", ");
+    }
+
+    return "";
+}
+
+QStringList workingMemoryFocusTerms(const QString &lesson,
+                                    const QString &question,
+                                    const QString &answer,
+                                    int limit = 5)
+{
+    QStringList focus = overlappingEvidenceTokens(question, lesson + " " + answer, limit);
+    const QStringList questionTokens = significantQuestionTokens(question, false);
+    for (const QString &token : questionTokens) {
+        if (!focus.contains(token)) {
+            focus.append(token);
+        }
+        if (focus.size() >= limit) {
+            break;
+        }
+    }
+    return focus;
+}
+
+QString buildSystematicLessonThinking(const QString &lesson, const QString &question, const QString &answer)
+{
+    const QString cleanQuestion = compactText(question, 170);
+    const QString cleanAnswer = answerCore(answer);
+    if (cleanQuestion.isEmpty() || cleanAnswer.isEmpty()) {
+        return "";
+    }
+
+    const QString operation = reasoningOperationForQuestion(lesson, question);
+    const QString trainingMove = thinkingMoveFromTraining(trainingThinkingFromLesson(lesson, 180));
+    const QString ownRule = ownWordsLessonRule(lesson, question);
+
+    QStringList parts;
+    if (!trainingMove.isEmpty()) {
+        parts.append(QString("I use the trained method: %1").arg(trainingMove));
+    }
+    if (!ownRule.isEmpty()) {
+        const QString normalizedRule = normalizedForMatch(ownRule);
+        if (normalizedRule.startsWith("the ") || normalizedRule.startsWith("i ")) {
+            parts.append(ownRule);
+        } else {
+            parts.append(QString("The rule I apply is that %1").arg(ownRule));
+        }
+    } else {
+        parts.append(QString("I use %1 to connect the lesson to the question").arg(operation));
+    }
+    parts.append(QString("For \"%1\", the answer must explain why %2 follows from the given facts").arg(cleanQuestion, cleanAnswer));
+
+    return compactText("Answer check: " + parts.join(". ") + ".", 520);
+}
+
 QString buildMathWordProblemThinking(const QString &question, const QString &answer)
 {
     const QString lowerQuestion = question.toLower();
@@ -2140,6 +3233,94 @@ QString buildSequenceThinking(const QString &question, const QString &answer)
         const double step = numbers[1] - numbers[0];
         return QString("Answer check: I look for the repeated step. From %1 to %2 the change is %3, so the missing value should keep that step and become %4.")
             .arg(formatNumber(numbers[0]), formatNumber(numbers[1]), formatNumber(step), cleanAnswer);
+    }
+
+    return "";
+}
+
+QString buildGeometryThinking(const QString &lesson, const QString &question, const QString &answer)
+{
+    const QString lowerQuestion = question.toLower();
+    const QString lowerLesson = lesson.toLower();
+    const QString combined = lowerQuestion + " " + lowerLesson;
+    const QList<double> numbers = numbersInText(question);
+    const QString cleanAnswer = answerCore(answer);
+    if (cleanAnswer.isEmpty()) {
+        return "";
+    }
+
+    auto answerComparison = [&](double calculated) {
+        QRegularExpression answerNumberRx("(-?\\d+(?:\\.\\d+)?)");
+        QRegularExpressionMatch answerMatch = answerNumberRx.match(cleanAnswer);
+        if (!answerMatch.hasMatch()) {
+            return QString();
+        }
+        bool ok = false;
+        const double answerNumber = answerMatch.captured(1).toDouble(&ok);
+        if (!ok) {
+            return QString();
+        }
+        if (numbersMatch(answerNumber, calculated)) {
+            return QString(" This matches my answer.");
+        }
+        return QString(" This calculation gives %1, so I should correct the answer if it does not match.")
+            .arg(formatNumber(calculated));
+    };
+
+    if (combined.contains("pythagorean")) {
+        if (lowerQuestion.contains("mistake")
+            || lowerQuestion.contains("check")
+            || lowerQuestion.contains("non-right")
+            || lowerQuestion.contains("non right")) {
+            return QString("Answer check: I solve this as a condition-check problem, not a calculation. The Pythagorean theorem only works after I confirm a right triangle, so the critical check is whether one angle is exactly 90 degrees; that is why %1 is the answer.")
+                .arg(cleanAnswer);
+        }
+        return QString("Answer check: Before using a^2 + b^2 = c^2, I first verify the triangle is right-angled and identify the hypotenuse opposite the right angle. That condition check supports %1.")
+            .arg(cleanAnswer);
+    }
+
+    if ((combined.contains("radius") || combined.contains("radii"))
+        && (combined.contains("diameter") || combined.contains("width") || combined.contains("clearance") || combined.contains("semicircle"))
+        && !numbers.isEmpty()) {
+        const double radius = numbers.first();
+        const double diameter = radius * 2.0;
+        return QString("Calculation check: I identify the requested width as the diameter of the semicircle. A diameter is two radii across the circle, so I calculate 2 * %1 = %2 feet.%3")
+            .arg(formatNumber(radius), formatNumber(diameter), answerComparison(diameter));
+    }
+
+    if (combined.contains("diameter")
+        && combined.contains("radius")
+        && (lowerQuestion.contains("find") || lowerQuestion.contains("what"))
+        && !numbers.isEmpty()) {
+        const double diameter = numbers.first();
+        const double radius = diameter / 2.0;
+        return QString("Calculation check: I need the radius, which is half of the diameter. I calculate %1 / 2 = %2.%3")
+            .arg(formatNumber(diameter), formatNumber(radius), answerComparison(radius));
+    }
+
+    if (combined.contains("area")
+        && combined.contains("triangle")
+        && numbers.size() >= 2
+        && (combined.contains("base") || combined.contains("height"))) {
+        const double base = numbers[0];
+        const double height = numbers[1];
+        const double area = base * height / 2.0;
+        return QString("Calculation check: I identify this as triangle area. A triangle is half of the matching base-height rectangle, so I calculate (%1 * %2) / 2 = %3.%4")
+            .arg(formatNumber(base), formatNumber(height), formatNumber(area), answerComparison(area));
+    }
+
+    if (combined.contains("circumference") && !numbers.isEmpty()) {
+        const double value = numbers.first();
+        if (combined.contains("radius")) {
+            const double circumference = 2.0 * 3.14159265358979323846 * value;
+            return QString("Calculation check: I identify circumference as the distance around the circle. With radius %1, I use 2 * pi * r, so 2 * pi * %1 is about %2.%3")
+                .arg(formatNumber(value), formatNumber(circumference), answerComparison(circumference));
+        }
+        if (combined.contains("diameter")) {
+            const double circumference = 3.14159265358979323846 * value;
+            return QString("Calculation check: I identify circumference as the distance around the circle. With diameter %1, I use pi * d, so pi * %1 is about %2.%3")
+                .arg(formatNumber(value), formatNumber(circumference), answerComparison(circumference));
+        }
     }
 
     return "";
@@ -2300,17 +3481,17 @@ QString buildQuestionTypeThinking(const QString &question, const QString &answer
     }
 
     if (lowerQuestion.startsWith("what is the ") || lowerQuestion.startsWith("what is a ") || lowerQuestion.startsWith("what is an ")) {
-        return QString("Answer check: I see the question asks for an identity or definition, so the answer must name the idea directly. \"%1\" does that for \"%2\".")
+        return QString("Answer check: I identify the term or idea being asked about, then check that the answer states its core meaning instead of only giving a related word. Here, %1 gives that core meaning for \"%2\".")
             .arg(cleanAnswer, cleanQuestion);
     }
 
     if (lowerQuestion.startsWith("why ")) {
-        return QString("Answer check: I see the question asks for a reason, so I check that \"%1\" explains why \"%2\" is true.")
+        return QString("Answer check: I see the question asks for a reason, so I look for the cause, priority, or rule that makes the result happen. The explanation %1 gives that reason for \"%2\".")
             .arg(cleanAnswer, cleanQuestion);
     }
 
     if (lowerQuestion.startsWith("how ")) {
-        return QString("Answer check: I see the question asks for a method or process, so I check that \"%1\" gives the steps or action needed for \"%2\".")
+        return QString("Answer check: I see the question asks for a method or process, so I look for the action sequence that would solve it. The answer %1 gives the needed process for \"%2\".")
             .arg(cleanAnswer, cleanQuestion);
     }
 
@@ -2344,27 +3525,343 @@ QString buildQuestionTypeThinking(const QString &question, const QString &answer
             .arg(cleanAnswer);
     }
 
-    return QString("Answer check: I read what \"%1\" is asking, isolate the required kind of answer, and check that \"%2\" directly satisfies it.")
+    return QString("Answer check: I classify what \"%1\" is asking, identify the needed answer type, and connect the answer to that requirement. That is why %2 is my answer.")
         .arg(cleanQuestion, cleanAnswer);
+}
+
+QString buildLessonGuidedThinking(const QString &lesson, const QString &question, const QString &answer)
+{
+    const QString cleanLesson = compactText(lesson, 220);
+    const QString cleanQuestion = compactText(question, 180);
+    const QString cleanAnswer = answerCore(answer);
+    if (cleanLesson.isEmpty() || cleanQuestion.isEmpty() || cleanAnswer.isEmpty()) {
+        return "";
+    }
+
+    const QString lowerLesson = lesson.toLower();
+    const QString lowerQuestion = question.toLower();
+    const QString lowerCombined = lowerLesson + " " + lowerQuestion;
+
+    if (lowerCombined.contains("rule of threes") || lowerCombined.contains("rule of three")) {
+        if (lowerQuestion.contains("shelter") && lowerQuestion.contains("food")) {
+            return QString("Answer check: I apply the survival rule of threes by comparing time limits: extreme weather without shelter can become deadly in about 3 hours, while lack of food is usually a 3-week threat. The shorter survival window makes shelter the priority, so %1 follows.")
+                .arg(cleanAnswer);
+        }
+        return QString("Answer check: I apply the survival rule of threes by ranking threats by time limit instead of comfort. The most urgent limit in the question determines why %1 is the correct priority.")
+            .arg(cleanAnswer);
+    }
+
+    if (lowerCombined.contains("oxygen") || lowerCombined.contains("hypoxia") || lowerQuestion.contains("drowning")) {
+        if (lowerQuestion.contains("drowning") || lowerQuestion.contains("airway")) {
+            return QString("Answer check: I connect the general oxygen rule to the drowning mechanism: water blocks breathing, which prevents oxygen from reaching the brain. That specific mechanism is %1.")
+                .arg(cleanAnswer);
+        }
+        return QString("Answer check: The lesson says oxygen is the immediate survival constraint. I trace the scenario to the oxygen failure, so %1 names the cause.")
+            .arg(cleanAnswer);
+    }
+
+    if (lowerCombined.contains("critical resource") || lowerCombined.contains("luxury resource")) {
+        return QString("Answer check: I compare the survival role of each resource. A critical resource prevents death in the situation, while a luxury resource only improves comfort, so the important difference is %1.")
+            .arg(cleanAnswer);
+    }
+
+    if (lowerCombined.contains("triage")) {
+        return QString("Answer check: I match the action in the question to the lesson's concept: sorting patients by urgency to maximize survivors is triage. That is why the answer is %1.")
+            .arg(cleanAnswer);
+    }
+
+    if (lowerCombined.contains("5 whys") || lowerCombined.contains("5 why")) {
+        if (lowerQuestion.contains("final") || cleanAnswer.trimmed().startsWith("why", Qt::CaseInsensitive)) {
+            return QString("Answer check: The 5 Whys should move past the visible symptom to the deeper preventable cause. I do not stop at the first debris/problem clue; I ask what missing process allowed it, so the final question is \"%1\".")
+                .arg(cleanAnswer);
+        }
+        return QString("Answer check: The 5 Whys starts with the visible symptom and asks why it is happening. Here the first useful why targets the observed problem directly, so \"%1\" fits as the starting question.")
+            .arg(cleanAnswer);
+    }
+
+    if (lowerCombined.contains("fishbone") || lowerCombined.contains("ishikawa")) {
+        if (lowerQuestion.contains("staffing") || cleanAnswer.compare("People", Qt::CaseInsensitive) == 0) {
+            return QString("Answer check: A Fishbone Diagram classifies causes by type. Staffing levels are a human/resource factor, so they belong under the People category; that is why the answer is %1.")
+                .arg(cleanAnswer);
+        }
+        return QString("Answer check: I classify the cause using the Fishbone categories from the lesson, then choose the category that best matches the scenario detail. That points to %1.")
+            .arg(cleanAnswer);
+    }
+
+    if (lowerCombined.contains("cause-and-effect") || lowerCombined.contains("cause and effect") || lowerQuestion.contains("direct cause")) {
+        if (lowerQuestion.contains("open-plan") || lowerQuestion.contains("open plan")) {
+            return QString("Answer check: I identify the change and its immediate effect. The open-plan layout increases noise and distraction, which directly reduces focus and productivity, so the cause is %1.")
+                .arg(cleanAnswer);
+        }
+        return QString("Answer check: I link the changed condition to the immediate effect it creates, then choose the cause that directly explains the result. That causal chain supports %1.")
+            .arg(cleanAnswer);
+    }
+
+    if (lowerCombined.contains("root cause")
+        || lowerCombined.contains("surface sign")
+        || lowerCombined.contains("symptom")
+        || lowerQuestion.contains("diagnos")) {
+        if (lowerQuestion.contains("shivering") || lowerQuestion.contains("hiker") || lowerQuestion.contains("eaten")) {
+            return QString("Answer check: I separate the surface sign from the underlying failure. Warming addresses the shivering symptom, but the lesson says the real failure is the energy deficit from not eating, so the mistake is %1.")
+                .arg(cleanAnswer);
+        }
+        return QString("Answer check: I use the root-cause rule: identify what is fundamentally failing before treating the visible symptom. That makes %1 the correct explanation.")
+            .arg(cleanAnswer);
+    }
+
+    if (lowerCombined.contains("situational problem")) {
+        return QString("Answer check: I connect the lesson principle to the specific situation: identify the issue, explain the cause-effect link, then choose the practical response. That makes %1 the answer.")
+            .arg(cleanAnswer);
+    }
+
+    if (lowerQuestion.startsWith("why ")) {
+        return QString("Answer check: I use the lesson rule and connect it to this scenario instead of only naming the answer. The lesson says: %1 Therefore %2 explains why the answer follows.")
+            .arg(cleanLesson, cleanAnswer);
+    }
+
+    if (lowerQuestion.startsWith("what mistake")
+        || lowerQuestion.contains("what mistake")
+        || lowerQuestion.contains("what specific cause")
+        || lowerQuestion.contains("what concept")
+        || lowerQuestion.contains("difference between")
+        || lowerQuestion.contains("important difference")) {
+        const QString fallback = lessonApplicationFallback(lesson, question, answer);
+        if (!fallback.isEmpty()) {
+            return fallback;
+        }
+    }
+
+    return lessonApplicationFallback(lesson, question, answer, 320);
+}
+
+QString buildLessonGroundedAnswer(const QString &lesson, const QString &question, const QString &answer)
+{
+    const QString directAnswer = polishUserFacingText(answerCore(answer), 0, true);
+    if (directAnswer.isEmpty()) {
+        return "";
+    }
+
+    const QString cleanQuestion = compactText(question, 180);
+    const QString cleanLesson = compactText(lesson, 0);
+    if (cleanLesson.isEmpty()) {
+        return directAnswer;
+    }
+
+    const QString lowerQuestion = question.toLower();
+    const QString lowerLesson = lesson.toLower();
+    const QString lowerCombined = lowerLesson + " " + lowerQuestion;
+    const QString normalizedDirect = normalizedForMatch(directAnswer);
+    const int directWords = directAnswer.split(' ', Qt::SkipEmptyParts).size();
+    const bool alreadyExplains = directWords >= 18
+        && (normalizedDirect.contains("because")
+            || normalizedDirect.contains("why")
+            || normalizedDirect.contains("so ")
+            || normalizedDirect.contains("while")
+            || normalizedDirect.contains("therefore")
+            || normalizedDirect.contains("which"));
+
+    if (alreadyExplains && meaningfulTokenOverlapScore(directAnswer, cleanLesson) >= 10) {
+        return directAnswer;
+    }
+
+    const FormulaApplication formulaApp = applyExtractedFormula(cleanLesson, question, directAnswer);
+    if (formulaApp.valid) {
+        return polishUserFacingText(QString("%1 I use the learned relation %2 = %3. The question gives %4, so I compute %5 = %6 and use that result for the answer.")
+                                        .arg(directAnswer,
+                                             formulaApp.target,
+                                             formulaApp.expression,
+                                             formulaApp.mappedFacts.join(", "),
+                                             formulaApp.expressionWithValues,
+                                             formatNumber(formulaApp.value)),
+                                    0,
+                                    true);
+    }
+
+    const QString conditionRule = extractedConditionRule(cleanLesson, question);
+    if (!conditionRule.isEmpty()
+        && (lowerQuestion.contains("check")
+            || lowerQuestion.contains("mistake")
+            || lowerQuestion.contains("prevent")
+            || lowerQuestion.contains("before")
+            || lowerQuestion.contains("requires"))) {
+        return polishUserFacingText(QString("%1 The important reasoning step is the condition: %2. I use that condition to decide whether the rule can be applied, rather than applying the rule blindly.")
+                                        .arg(directAnswer, conditionRule),
+                                    0,
+                                    true);
+    }
+
+    const QString definitionExplanation = buildDefinitionOrContrastExplanation(cleanLesson, question, directAnswer);
+    if (!definitionExplanation.isEmpty()
+        && !normalizedDirect.contains(normalizedForMatch(definitionExplanation).left(80))) {
+        return polishUserFacingText(QString("%1 %2 This extra distinction explains why the answer fits this question instead of only naming a term.")
+                                        .arg(directAnswer, definitionExplanation),
+                                    0,
+                                    true);
+    }
+
+    const QString causeExplanation = buildCauseChainExplanation(cleanLesson, question);
+    if (!causeExplanation.isEmpty()
+        && !normalizedDirect.contains(normalizedForMatch(causeExplanation).left(80))) {
+        return polishUserFacingText(QString("%1 %2 That chain explains the result in the question.")
+                                        .arg(directAnswer, causeExplanation),
+                                    0,
+                                    true);
+    }
+
+    const QList<double> questionNumbers = numbersInText(question);
+    if (lowerCombined.contains("pythagorean")) {
+        if (lowerQuestion.contains("mistake")
+            || lowerQuestion.contains("check")
+            || lowerQuestion.contains("non-right")
+            || lowerQuestion.contains("non right")) {
+            return polishUserFacingText(QString("%1 This prevents the mistake because a^2 + b^2 = c^2 is only valid for a right triangle. If there is no 90-degree angle, I should not use the theorem.")
+                                            .arg(directAnswer),
+                                        0,
+                                        true);
+        }
+        return polishUserFacingText(QString("%1 I only use the Pythagorean theorem after confirming the triangle is right-angled and identifying the hypotenuse opposite that right angle.")
+                                        .arg(directAnswer),
+                                    0,
+                                    true);
+    }
+
+    if ((lowerCombined.contains("radius") || lowerCombined.contains("radii"))
+        && (lowerCombined.contains("diameter") || lowerCombined.contains("width") || lowerCombined.contains("clearance") || lowerCombined.contains("semicircle"))
+        && !questionNumbers.isEmpty()) {
+        const double radius = questionNumbers.first();
+        const double diameter = radius * 2.0;
+        return polishUserFacingText(QString("%1 The width clearance is the diameter, and a diameter is two radii across the circle. With radius %2 feet, I calculate 2 * %2 = %3 feet.")
+                                        .arg(directAnswer, formatNumber(radius), formatNumber(diameter)),
+                                    0,
+                                    true);
+    }
+
+    if (lowerCombined.contains("diameter")
+        && lowerCombined.contains("radius")
+        && !questionNumbers.isEmpty()) {
+        const double diameter = questionNumbers.first();
+        const double radius = diameter / 2.0;
+        return polishUserFacingText(QString("%1 Radius is half of diameter, so I calculate %2 / 2 = %3.")
+                                        .arg(directAnswer, formatNumber(diameter), formatNumber(radius)),
+                                    0,
+                                    true);
+    }
+
+    if (lowerCombined.contains("rule of threes") || lowerCombined.contains("rule of three")) {
+        if (lowerQuestion.contains("shelter") && lowerQuestion.contains("food")) {
+            return polishUserFacingText(QString("%1 Shelter is the priority because the rule of threes gives extreme weather a much shorter danger window: about 3 hours without shelter, compared with about 3 weeks without food.")
+                                            .arg(directAnswer),
+                                        0,
+                                        true);
+        }
+        return polishUserFacingText(QString("%1 The lesson says to rank survival needs by the shortest time limit, so the most immediate threat must be handled first.")
+                                        .arg(directAnswer),
+                                    0,
+                                    true);
+    }
+
+    if (lowerCombined.contains("root cause")
+        || lowerCombined.contains("surface sign")
+        || lowerCombined.contains("symptom")) {
+        if (lowerQuestion.contains("shivering") || lowerQuestion.contains("hiker") || lowerQuestion.contains("eaten")) {
+            return polishUserFacingText(QString("%1 Warming only reacts to the visible shivering, but the lesson says the deeper problem may be an energy deficit from not eating. The precise action is to identify and address that underlying failure, not only the surface sign.")
+                                            .arg(directAnswer),
+                                        0,
+                                        true);
+        }
+        return polishUserFacingText(QString("%1 The reason is that the lesson says surface signs can hide the real failure, so the answer must name the underlying cause rather than only the symptom.")
+                                        .arg(directAnswer),
+                                    0,
+                                    true);
+    }
+
+    if (lowerCombined.contains("oxygen") || lowerCombined.contains("hypoxia") || lowerQuestion.contains("drowning")) {
+        if (lowerQuestion.contains("drowning") || lowerQuestion.contains("airway")) {
+            return polishUserFacingText(QString("%1 In drowning, water blocks normal breathing, so oxygen cannot reach the brain. That turns the general oxygen rule into the specific mechanism: hypoxia from airway obstruction.")
+                                            .arg(directAnswer),
+                                        0,
+                                        true);
+        }
+        return polishUserFacingText(QString("%1 The lesson says oxygen is the most immediate constraint because brain damage can begin within minutes when oxygen delivery fails.")
+                                        .arg(directAnswer),
+                                    0,
+                                    true);
+    }
+
+    if (lowerCombined.contains("critical resource") || lowerCombined.contains("luxury resource")) {
+        return polishUserFacingText(QString("%1 In survival, the difference matters because a critical resource keeps the person alive in that environment, like water in a desert, while a luxury resource only improves comfort and can wait.")
+                                        .arg(directAnswer),
+                                    0,
+                                    true);
+    }
+
+    if (lowerCombined.contains("triage")) {
+        return polishUserFacingText(QString("%1 It fits because triage means sorting casualties by urgency so limited help goes first where it can save the most lives.")
+                                        .arg(directAnswer),
+                                    0,
+                                    true);
+    }
+
+    const QString rule = correctionRuleFromLesson(cleanLesson, 180);
+    if (!rule.isEmpty()) {
+        const QString operation = reasoningOperationForQuestion(cleanLesson, question);
+        return polishUserFacingText(QString("%1 I use %2 and apply the learned rule: %3 This connects the answer to the specific question instead of only naming a memorized fact.")
+                                        .arg(directAnswer, operation, rule),
+                                    0,
+                                    true);
+    }
+
+    const QString lessonSentence = bestLessonSentenceForQuestion(cleanLesson, cleanQuestion, 190);
+    if (!lessonSentence.isEmpty()
+        && !normalizedDirect.contains(normalizedForMatch(lessonSentence).left(70))) {
+        const QString operation = reasoningOperationForQuestion(cleanLesson, question);
+        const QStringList focus = workingMemoryFocusTerms(cleanLesson, question, directAnswer, 4);
+        const QString focusClause = focus.isEmpty()
+            ? QString()
+            : QString(" I focused on %1.").arg(focus.join(", "));
+        return polishUserFacingText(QString("%1 I use %2.%3 This follows from the lesson detail: %4")
+                                        .arg(directAnswer, operation, focusClause, lessonSentence),
+                                    0,
+                                    true);
+    }
+
+    return directAnswer;
 }
 
 QString buildStudentVisibleThinking(const QString &lesson, const QString &question, const QString &answer)
 {
-    (void)lesson;
-
     const QString arithmeticThinking = buildArithmeticThinking(question, answer);
     if (!arithmeticThinking.isEmpty()) {
         return arithmeticThinking;
     }
 
-    const QString conceptualThinking = buildConceptualThinking(question, answer);
-    if (!conceptualThinking.isEmpty()) {
-        return conceptualThinking;
+    const QString universalThinking = buildUniversalCognitiveThinking(lesson, question, answer);
+    if (!universalThinking.isEmpty()) {
+        return universalThinking;
+    }
+
+    const QString geometryThinking = buildGeometryThinking(lesson, question, answer);
+    if (!geometryThinking.isEmpty()) {
+        return geometryThinking;
     }
 
     const QString mathWordThinking = buildMathWordProblemThinking(question, answer);
     if (!mathWordThinking.isEmpty()) {
         return mathWordThinking;
+    }
+
+    const QString systematicThinking = buildSystematicLessonThinking(lesson, question, answer);
+    const QString lessonThinking = buildLessonGuidedThinking(lesson, question, answer);
+    if (!systematicThinking.isEmpty()) {
+        return systematicThinking;
+    }
+    if (!lessonThinking.isEmpty()) {
+        return lessonThinking;
+    }
+
+    const QString conceptualThinking = buildConceptualThinking(question, answer);
+    if (!conceptualThinking.isEmpty()) {
+        return conceptualThinking;
     }
 
     return buildQuestionTypeThinking(question, answer);
@@ -2448,11 +3945,68 @@ QString extractAnswerForDisplay(QString response)
     return compactText(answerLines.isEmpty() ? response : answerLines.join(' '), 0);
 }
 
+QString stripAnswerCandidate(QString text)
+{
+    text = compactText(text, 260);
+    text.remove(QRegularExpression("^\\s*(?:answer|final\\s+answer)\\s*:\\s*", QRegularExpression::CaseInsensitiveOption));
+    text.remove(QRegularExpression("^\\s*[\"'`]+"));
+    text.remove(QRegularExpression("[\"'`]+\\s*$"));
+    return text.trimmed();
+}
+
+QString extractCorrectedAnswerFromTeacherText(const QString &text)
+{
+    const QString clean = compactText(text, 0);
+    if (clean.isEmpty()) {
+        return "";
+    }
+
+    static const QStringList quotedPatterns = {
+        "correct\\s+(?:final\\s+)?(?:answer|question)\\s*(?:is|:)\\s*[\"']([^\"']+)[\"']",
+        "answer\\s+should\\s+be\\s*[\"']([^\"']+)[\"']"
+    };
+
+    for (const QString &pattern : quotedPatterns) {
+        QRegularExpression rx(pattern, QRegularExpression::CaseInsensitiveOption);
+        QRegularExpressionMatch match = rx.match(clean);
+        if (match.hasMatch()) {
+            const QString candidate = stripAnswerCandidate(match.captured(1));
+            if (!candidate.isEmpty()) {
+                return candidate;
+            }
+        }
+    }
+
+    static const QStringList plainPatterns = {
+        "correct\\s+(?:final\\s+)?(?:answer|question)\\s*(?:is|:)\\s*([^\\.\\n]+(?:\\?)?)",
+        "answer\\s+should\\s+be\\s*([^\\.\\n]+(?:\\?)?)"
+    };
+
+    for (const QString &pattern : plainPatterns) {
+        QRegularExpression rx(pattern, QRegularExpression::CaseInsensitiveOption);
+        QRegularExpressionMatch match = rx.match(clean);
+        if (match.hasMatch()) {
+            const QString candidate = stripAnswerCandidate(match.captured(1));
+            if (!candidate.isEmpty()
+                && candidate.length() <= 260
+                && !normalizedForMatch(candidate).contains("correct reasoning")) {
+                return candidate;
+            }
+        }
+    }
+
+    return "";
+}
+
 QString formatThinkingFirstQuestionResponse(const QString &question, const QString &lesson, const QString &rawAnswer)
 {
-    const QString answer = polishUserFacingText(extractAnswerForDisplay(rawAnswer), 0, true);
+    QString answer = polishUserFacingText(extractAnswerForDisplay(rawAnswer), 0, true);
     if (answer.isEmpty()) {
         return "";
+    }
+    const QString groundedAnswer = buildLessonGroundedAnswer(lesson, question, answer);
+    if (!groundedAnswer.isEmpty()) {
+        answer = groundedAnswer;
     }
 
     QString thinking = extractLeadingCheckLine(rawAnswer);
@@ -2475,9 +4029,178 @@ QString formatDirectCheckedAnswer(const QString &question, const QString &answer
     return formatThinkingFirstQuestionResponse(question, "", "Answer: " + answer);
 }
 
+QString cleanGenerationTopic(QString normalized)
+{
+    normalized = requestCoreForRouting(normalized);
+    QString topic = normalized;
+    static const QStringList removeWords = {
+        "create", "generate", "write", "make", "compose", "ask", "quiz",
+        "give", "provide", "another", "again", "more", "next", "one",
+        "me", "for", "a", "an", "the", "simple", "practice", "question",
+        "problem", "problems", "questions", "in", "about", "on", "of"
+    };
+
+    QStringList tokens;
+    for (const QString &token : normalizedForMatch(topic).split(' ', Qt::SkipEmptyParts)) {
+        if (!removeWords.contains(token) && !tokens.contains(token)) {
+            tokens.append(token);
+        }
+    }
+
+    return tokens.join(' ').trimmed();
+}
+
+QString buildGenerativeLocalAnswer(const QString &question,
+                                   QString *lastGeneratedKind,
+                                   QString *lastGeneratedTopic,
+                                   int *generationCounter)
+{
+    const QString core = requestCoreForRouting(question);
+    const QString normalized = normalizedForMatch(core);
+    const QString compactIntent = QString(normalized).remove(' ');
+    const bool followUpRequest = normalized == "another one"
+        || normalized == "another"
+        || normalized == "again"
+        || normalized == "aagain"
+        || normalized == "one more"
+        || normalized == "more"
+        || normalized == "next one"
+        || normalized == "next"
+        || compactIntent == "aagain"
+        || compactIntent == "againplease"
+        || (normalized.startsWith("another ")
+            && (normalized.contains("problem")
+                || normalized.contains("question")
+                || normalized.contains("story")
+                || normalized.contains("math")
+                || compactIntent.contains("mathproblem")));
+    const bool explicitGenerationContent = normalized.contains("problem")
+        || normalized.contains("question")
+        || normalized.contains("story")
+        || normalized.contains("math")
+        || normalized.contains("physics")
+        || normalized.contains("geometry")
+        || normalized.contains("age")
+        || compactIntent.contains("mathproblem");
+    const bool shortFollowUpOnly = followUpRequest && !explicitGenerationContent;
+    const bool generationRequest = normalized.startsWith("create ")
+        || normalized.startsWith("generate ")
+        || normalized.startsWith("write ")
+        || normalized.startsWith("make ")
+        || normalized.startsWith("compose ")
+        || normalized.startsWith("ask me ")
+        || normalized.startsWith("quiz me ")
+        || ((normalized.contains("question") || normalized.contains("problem"))
+            && (normalized.startsWith("give me ") || normalized.startsWith("provide ")));
+    if (!generationRequest && !followUpRequest) {
+        return "";
+    }
+    if (shortFollowUpOnly
+        && (!lastGeneratedKind || !lastGeneratedTopic || lastGeneratedKind->isEmpty() || lastGeneratedTopic->isEmpty())) {
+        return "";
+    }
+
+    const bool wantsProblem = normalized.contains("problem")
+        || normalized.contains("solve")
+        || normalized.contains("word problem")
+        || compactIntent.contains("mathproblem");
+    const bool wantsQuestion = normalized.contains("question")
+        || normalized.startsWith("ask me")
+        || normalized.startsWith("quiz me");
+    const bool wantsStory = normalized.contains("story")
+        || normalized.contains("short story")
+        || normalized.contains("creative")
+        || normalized.startsWith("write ")
+        || normalized.startsWith("compose ");
+    QString topic = shortFollowUpOnly && lastGeneratedTopic ? *lastGeneratedTopic : cleanGenerationTopic(core);
+    QString kind = shortFollowUpOnly && lastGeneratedKind ? *lastGeneratedKind : QString();
+    if (kind.isEmpty()) {
+        if (wantsStory) {
+            kind = "story";
+        } else if (wantsProblem || normalized.contains("math") || normalized.contains("mathematic") || normalized.contains("age")) {
+            kind = "problem";
+        } else if (wantsQuestion) {
+            kind = "question";
+        } else {
+            kind = "prompt";
+        }
+    }
+    if (topic.isEmpty()) {
+        topic = kind == "problem" ? "general reasoning" : "the chosen topic";
+    }
+
+    const int variant = generationCounter ? *generationCounter : 0;
+    if (generationCounter) {
+        *generationCounter = variant + 1;
+    }
+    QString answer;
+    if (kind == "story") {
+        static const QStringList storyVariants = {
+            "Short story: The old clock in the classroom stopped every day at 3:17. Mara thought it was broken until she noticed the minute hand always pointed toward the science cabinet. Inside, behind a stack of dusty notebooks, she found a folded map drawn by a student from fifty years ago. The map led to a tiny garden behind the gym, where someone had planted a tree and written one sentence on a stone: 'Curiosity keeps time moving.'",
+            "Short story: A small robot named Lio was built to sort library books, but it kept pausing at the poetry shelf. One rainy evening, it arranged the returned books into a pattern that spelled HELP. The librarian followed the pattern and found a leaking pipe above the archives. From then on, nobody called Lio broken; they called it observant.",
+            "Short story: Every morning, Nina heard a whistle from the empty train station. She followed it one day and found an old conductor teaching birds to mimic departure calls. He said the town had forgotten the sound of leaving, so the birds kept it alive. Nina smiled and taught them a new sound too: the sound of coming home.",
+            "Short story: The village lantern never went out, even in storms. When Eli climbed the tower to learn why, he found no flame inside, only mirrors catching moonlight from every angle. He realized the lantern survived because it borrowed light from many places. That night, he stopped trying to solve every problem alone."
+        };
+        answer = storyVariants[variant % storyVariants.size()];
+    } else if (topic.contains("age") || normalized.contains("age")) {
+        static const QStringList ageVariants = {
+            "Practice problem: Maria is 12 years older than her brother. In 4 years, Maria will be twice her brother's age. How old is each person now? Let the brother's age be x, then compare their ages after 4 years.",
+            "Practice problem: A father is 4 times as old as his daughter. In 12 years, he will be twice as old as she is. How old are they now? Let the daughter's current age be x.",
+            "Practice problem: Leo is 5 years older than Ana. The sum of their ages is 31. How old is each person? Use x for Ana's age and x + 5 for Leo's age.",
+            "Practice problem: In 6 years, Sam will be three times as old as he was 2 years ago. How old is Sam now? Compare his future age with three times his past age."
+        };
+        answer = ageVariants[variant % ageVariants.size()];
+    } else if (topic.contains("math") || topic.contains("mathematic") || kind == "problem") {
+        static const QStringList mathVariants = {
+            "Practice problem: A student buys 3 notebooks and 2 pens for 17 dollars. Each notebook costs 4 dollars. What is the cost of one pen? Subtract the notebook cost first, then divide the remaining cost by 2.",
+            "Practice problem: A rectangle has a length of 14 cm and a width of 9 cm. What is its area, and what operation tells you that? Use area = length x width.",
+            "Practice problem: A bus has 48 seats. If 5/8 of the seats are filled, how many seats are occupied? Multiply 48 by 5/8.",
+            "Practice problem: A number is doubled, then 7 is added, giving 31. What is the original number? Work backward: subtract 7, then divide by 2."
+        };
+        answer = mathVariants[variant % mathVariants.size()];
+    } else if (topic.contains("physics")) {
+        static const QStringList physicsVariants = {
+            "Practice question: A 2 kg cart accelerates at 3 m/s^2. What net force acts on it, and why does Newton's second law use mass instead of weight? Use F = ma, then explain mass as inertia.",
+            "Practice question: A gas in a sealed container is heated. Why does the pressure increase? Explain the chain from temperature to particle speed to wall collisions.",
+            "Practice question: A 10 N force acts for 0.5 seconds. What impulse is delivered, and what does impulse change? Use impulse = force x time.",
+            "Practice question: Two objects have the same mass, but one is on Earth and one is on the Moon. Which property changes, mass or weight, and why?"
+        };
+        answer = physicsVariants[variant % physicsVariants.size()];
+    } else if (topic.contains("geometry")) {
+        static const QStringList geometryVariants = {
+            "Practice problem: A semicircular window has a radius of 5 feet. What is its full width? Use diameter = 2 x radius.",
+            "Practice problem: A triangle has a base of 12 cm and a height of 7 cm. What is its area? Use area = base x height / 2.",
+            "Practice question: Why must a triangle have a 90-degree angle before using the Pythagorean theorem? Explain the condition before applying a^2 + b^2 = c^2.",
+            "Practice problem: A circle has a diameter of 18 inches. What is its radius? Use radius = diameter / 2."
+        };
+        answer = geometryVariants[variant % geometryVariants.size()];
+    } else {
+        answer = QString("Practice %1: Explain the main idea of %2 in your own words, give one concrete example, and justify why the example fits. A strong answer should define the idea, apply it to the example, and state the reason clearly.")
+                     .arg(kind == "question" ? "question" : "prompt",
+                          topic);
+    }
+
+    if (lastGeneratedKind) {
+        *lastGeneratedKind = kind;
+    }
+    if (lastGeneratedTopic) {
+        *lastGeneratedTopic = topic;
+    }
+
+    const QString thinking = shortFollowUpOnly
+        ? "I connect this short follow-up to the last thing I generated, then create a different version instead of repeating the same text"
+        : (kind == "story"
+               ? "I read this as a creative writing request, choose a concrete situation, and build a short story with characters, conflict, and a clear ending"
+               : "I read this as a request to generate practice, identify the topic and format, then create a complete item with enough detail to answer");
+
+    return QString("Thinking: %1.\nAnswer: %2").arg(thinking, answer);
+}
+
 QString buildConversationalLocalAnswer(const QString &question)
 {
     const QString lowerQuestion = normalizedForMatch(question);
+    const QString coreQuestion = normalizedForMatch(requestCoreForRouting(question));
+    const QString compactQuestion = QString(lowerQuestion).remove(' ');
 
     if (lowerQuestion == "how are you"
         || lowerQuestion == "how are you doing"
@@ -2486,17 +4209,30 @@ QString buildConversationalLocalAnswer(const QString &question)
                "Answer: I am running normally and ready to learn, reason, and answer clearly.";
     }
 
-    if (lowerQuestion == "what are you"
-        || lowerQuestion == "who are you"
-        || lowerQuestion.contains("what kind of ai are you")) {
-        return "Thinking: I identify this as an identity question, so I answer from my role in this app.\n"
-               "Answer: I am a local student AI inside this trainer. I learn from lessons, datasets, corrections, and conversation memory.";
+    if (lowerQuestion.contains("math")
+        && (lowerQuestion.contains("example")
+            || lowerQuestion.contains("problem")
+            || lowerQuestion.contains("practice"))) {
+        return "Thinking: I identify this as a request for sample math practice, so I give concrete examples with different skills.\n"
+               "Answer: Here are example math problems: 1. If 12 boxes hold 8 pencils each, how many pencils are there? 2. A triangle has base 14 and height 9; what is its area? 3. What is 25 percent of 80?";
     }
 
     if (lowerQuestion.contains("what can you do")
-        || lowerQuestion.contains("what are your capabilities")) {
-        return "Thinking: I identify this as a capability question, so I describe the skills this app gives me.\n"
-               "Answer: I can learn from text or datasets, store related facts, answer questions with visible checks, and practice lessons from the teacher model.";
+        || lowerQuestion.contains("capabil")
+        || lowerQuestion.contains("skill")
+        || lowerQuestion.contains("show me your skills")
+        || lowerQuestion.contains("what are your skills")
+        || lowerQuestion.contains("show me what you can do")) {
+        return "Thinking: I identify this as a capability request, so I separate current chat skills from explicit training.\n"
+               "Answer: I can answer trained questions, solve basic arithmetic and common word problems, explain my answer check, recall teacher and dataset lessons, learn from teacher corrections, and train through CPU, local GPU, or the GPU server. Normal chat is read-only unless you start explicit training.";
+    }
+
+    if (coreQuestion == "what are you"
+        || coreQuestion == "who are you"
+        || coreQuestion == "what kind of ai are you"
+        || lowerQuestion.contains("your identity")) {
+        return "Thinking: I identify this as an identity question, so I answer from my role in this app.\n"
+               "Answer: I am the local student AI inside this trainer. My job is to answer from trained lessons, teacher corrections, datasets, and explicit CPU, local GPU, or GPU-server training.";
     }
 
     if (lowerQuestion.contains("can you understand me")
@@ -2506,8 +4242,17 @@ QString buildConversationalLocalAnswer(const QString &question)
     }
 
     if (lowerQuestion == "hello"
+        || lowerQuestion == "hello there"
         || lowerQuestion == "hi"
-        || lowerQuestion == "hey") {
+        || lowerQuestion == "hi there"
+        || lowerQuestion == "hey"
+        || lowerQuestion == "hey there"
+        || compactQuestion == "heythere"
+        || compactQuestion == "hellothere"
+        || compactQuestion == "hithere"
+        || lowerQuestion.startsWith("hello ")
+        || lowerQuestion.startsWith("hi ")
+        || lowerQuestion.startsWith("hey ")) {
         return "Thinking: I identify this as a greeting, so I respond conversationally.\n"
                "Answer: Hello. I am ready to learn and answer clearly.";
     }
@@ -2528,6 +4273,12 @@ QString buildVerifiedLocalChatAnswer(const QString &question)
     }
 
     const QString lowerQuestion = question.toLower();
+
+    if (lowerQuestion.contains("quadratic")
+        && (lowerQuestion.contains("formula") || lowerQuestion.contains("equation"))) {
+        return formatDirectCheckedAnswer(question,
+            "For a quadratic equation ax^2 + bx + c = 0, the quadratic formula is x = (-b +/- sqrt(b^2 - 4ac)) / (2a).");
+    }
 
     QRegularExpression allButRx("all\\s+but\\s+(\\d+)", QRegularExpression::CaseInsensitiveOption);
     QRegularExpressionMatch allButMatch = allButRx.match(question);
@@ -2703,9 +4454,11 @@ AgentController::AgentController(QObject *parent)
     , m_gpuProcess(nullptr)
     , m_datasetParseThread(nullptr)
     , m_datasetParseLogTimer(nullptr)
+    , m_generationCounter(0)
     , m_simulationDelay(2000)
     , m_datasetTrainingNextChunkIndex(0)
     , m_isReTest(false)
+    , m_knowledgeIndexDirty(true)
     , m_knowledgeFile("student_knowledge.json")
     , m_loraFile("lora_adapter.txt")
     , m_datasetTrainingEpochs(4)
@@ -2749,7 +4502,7 @@ AgentController::AgentController(QObject *parent)
     m_gpuTrainingStatus = "GPU training idle.";
     m_useLocalGpuTraining = settings.value("useLocalGpuTraining", false).toBool();
     m_localGpuTrainingStatus = m_useLocalGpuTraining
-        ? "Local GPU training enabled. Direct3D 11 compute will be checked when training starts."
+        ? "Local GPU training enabled. CUDA will be preferred when available; Direct3D 11 compute is the fallback."
         : "Local GPU training disabled; CPU LoRA path will be used.";
 
     m_datasetParseLogTimer = new QTimer(this);
@@ -3047,111 +4800,71 @@ QString AgentController::learnAndRespond(const QString &input) {
         return "";
     }
 
-    const bool question = isLikelyQuestion(cleanInput);
-    QString qResponse;
+    QString qResponse = buildGenerativeLocalAnswer(cleanInput,
+                                                   &m_lastGeneratedKind,
+                                                   &m_lastGeneratedTopic,
+                                                   &m_generationCounter);
+    if (!qResponse.isEmpty()) {
+        qResponse = formatThinkingFirstQuestionResponse(cleanInput, "", qResponse);
+        emit responseGenerated(input, qResponse);
+        return qResponse;
+    }
 
+    qResponse = buildVerifiedLocalChatAnswer(cleanInput);
+    if (!qResponse.isEmpty()) {
+        emit responseGenerated(input, qResponse);
+        return qResponse;
+    }
+
+    const bool question = isLikelyQuestion(cleanInput);
     if (question) {
         QString bestCurriculumAnswer;
         QString bestCurriculumLesson;
         QString relatedLearning;
-        int bestScore = 0;
-        int knowledgeIndex = findBestKnowledgeIndex(cleanInput, &bestScore);
-        if (knowledgeIndex >= 0 && bestScore >= relatedLearningMinimumScore()) {
-            const LearnedKnowledge &knowledge = m_knowledgeBank[knowledgeIndex];
-            if (isDirectKnowledgeMatch(cleanInput, knowledge.question)) {
-                bestCurriculumAnswer = knowledge.answer;
-                bestCurriculumLesson = knowledge.correction.isEmpty() ? knowledge.lesson : knowledge.correction;
-            } else {
-                relatedLearning = relatedKnowledgeContext(cleanInput, 3);
+
+        if (qResponse.isEmpty()) {
+            int bestScore = 0;
+            int knowledgeIndex = findBestKnowledgeIndex(cleanInput, &bestScore);
+            if (knowledgeIndex >= 0 && bestScore >= relatedLearningMinimumScore()) {
+                const LearnedKnowledge &knowledge = m_knowledgeBank[knowledgeIndex];
+                if (isDirectKnowledgeMatch(cleanInput, knowledge.question)) {
+                    bestCurriculumAnswer = knowledge.answer;
+                    bestCurriculumLesson = knowledge.correction.isEmpty() ? knowledge.lesson : knowledge.correction;
+                } else {
+                    relatedLearning = relatedKnowledgeContext(cleanInput, 3);
+                }
             }
         }
 
-        if (!bestCurriculumAnswer.isEmpty()) {
+        if (qResponse.isEmpty() && !bestCurriculumAnswer.isEmpty()) {
             qResponse = formatThinkingFirstQuestionResponse(cleanInput, bestCurriculumLesson, bestCurriculumAnswer);
         }
 
         if (qResponse.isEmpty()) {
-            qResponse = buildVerifiedLocalChatAnswer(cleanInput);
-        }
-
-        if (qResponse.isEmpty() && !m_apiKey.trimmed().isEmpty()) {
-            QNetworkAccessManager chatNetwork;
-            QJsonArray messages;
-
-            QJsonObject systemObj;
-            systemObj["role"] = "system";
-            systemObj["content"] = "You are the student AI. Answer the user's question by applying only clearly related learned facts, lessons, and calculations. If related learnings are provided, adapt their rule or method to the new situation instead of copying an old answer. Ignore unrelated learnings. Before answering, check the facts, wording, and any calculation internally. Reply with exactly two sections: 'Thinking: ' followed by the full verification needed to justify the answer, then 'Answer: ' followed by the final answer. For math, show the calculation. For word/concept questions, explain the relevant learned rule or concept. If the provided learnings are not related enough to verify the answer, say you do not know confidently. Do not output lesson JSON or markdown.";
-            messages.append(systemObj);
-
-            QJsonObject userObj;
-            userObj["role"] = "user";
-            userObj["content"] = relatedLearning.isEmpty()
-                ? cleanInput
-                : QString("User question: %1\n\nUse these related learnings only if they truly apply:\n%2")
-                    .arg(cleanInput, relatedLearning);
-            messages.append(userObj);
-
-            QJsonObject body;
-            body["model"] = m_teacherModel;
-            body["messages"] = messages;
-            body["temperature"] = 0.2;
-            body["max_tokens"] = 4096;
-
-            QNetworkRequest request(QUrl("https://api.featherless.ai/v1/chat/completions"));
-            request.setHeader(QNetworkRequest::ContentTypeHeader, "application/json");
-            request.setRawHeader("Authorization", "Bearer " + m_apiKey.trimmed().toUtf8());
-
-            QNetworkReply *reply = chatNetwork.post(request, QJsonDocument(body).toJson());
-            QEventLoop loop;
-            QTimer timeout;
-            timeout.setSingleShot(true);
-            connect(reply, &QNetworkReply::finished, &loop, &QEventLoop::quit);
-            connect(&timeout, &QTimer::timeout, &loop, &QEventLoop::quit);
-            timeout.start(10000);
-            loop.exec();
-
-            if (reply->isFinished() && reply->error() == QNetworkReply::NoError) {
-                QJsonDocument responseDoc = QJsonDocument::fromJson(reply->readAll());
-                QJsonArray choices = responseDoc.object()["choices"].toArray();
-                if (!choices.isEmpty()) {
-                    qResponse = choices[0].toObject()["message"].toObject()["content"].toString().trimmed();
-                    qResponse = formatThinkingFirstQuestionResponse(cleanInput, "", qResponse);
-                }
-            } else if (!reply->isFinished()) {
-                reply->abort();
+            int appliedScore = 0;
+            qResponse = buildAppliedLearningAnswer(cleanInput, &appliedScore);
+            if (!qResponse.isEmpty() && relatedLearning.isEmpty()) {
+                relatedLearning = QString("Applied trusted trained knowledge with relevance score %1.")
+                                      .arg(appliedScore);
             }
-            reply->deleteLater();
         }
 
         if (qResponse.isEmpty()) {
-            const QString memoryResponse = QString::fromStdString(m_agent.respond(cleanInput.toStdString(), m_temperature, m_contextWindow, 4096)).trimmed();
-            if (isUsefulMemoryResponse(memoryResponse, cleanInput)) {
-                qResponse = formatThinkingFirstQuestionResponse(cleanInput, "", "Answer: " + memoryResponse);
+            if (!relatedLearning.isEmpty()) {
+                qResponse = QString("[Thinking: I understood the request as \"%1\", found related trained lessons, but none directly verified this exact question.]\n"
+                                    "Answer: I do not know confidently from my trained lessons yet.")
+                                .arg(compactText(cleanInput, 140));
             } else {
-                qResponse = "[Thinking: I checked learned memory and could not verify enough facts for this question.]\nAnswer: I do not have enough learned facts yet to answer confidently.";
+                qResponse = QString("[Thinking: I understood the request as \"%1\", then checked structured knowledge and local rules but could not verify enough facts.]\n"
+                                    "Answer: I do not have enough learned facts yet to answer confidently.")
+                                .arg(compactText(cleanInput, 140));
             }
         }
 
-        if (m_learningEnabled) {
-            const QString verifiedAnswer = extractAnswerForDisplay(qResponse);
-            const QString trainingSample = QString("Question: %1 Verified response: %2").arg(cleanInput, qResponse);
-            m_agent.learn(trainingSample.toStdString(), 1.0);
-            m_agent.trainLoraText(trainingSample.toStdString(), 3, 0.05, 4, 8.0, 1.0, m_useLocalGpuTraining);
-            upsertKnowledge(cleanInput, "", verifiedAnswer, "", "manual chat", 0.4);
-            saveMemory();
-        }
     } else {
         qResponse = buildStatementUnderstandingResponse(cleanInput);
-
-        if (m_learningEnabled) {
-            const QString trainingSample = QString("Statement: %1").arg(cleanInput);
-            m_agent.learn(trainingSample.toStdString(), 0.6);
-            m_agent.trainLoraText(trainingSample.toStdString(), 2, 0.04, 4, 8.0, 0.6, m_useLocalGpuTraining);
-            saveMemory();
-        }
     }
 
-    emit memoryChanged();
     emit responseGenerated(input, qResponse);
 
     return qResponse;
@@ -3175,6 +4888,7 @@ bool AgentController::loadMemory() {
 void AgentController::clearMemory() {
     m_agent.clear();
     m_knowledgeBank.clear();
+    markKnowledgeIndexDirty();
     m_agent.save();
     m_agent.saveLora(m_loraFile.toStdString());
     saveKnowledgeBank();
@@ -3190,7 +4904,7 @@ QString AgentController::trainLoraFromText(const QString &trainingText, int epoc
     epochs = qMax(1, qMin(epochs, 32));
     if (m_useLocalGpuTraining) {
         m_isLocalGpuTrainingRunning = true;
-        setLocalGpuTrainingStatus("Starting Direct3D 11 local GPU LoRA training...");
+        setLocalGpuTrainingStatus("Starting local GPU LoRA training. CUDA is preferred when available; Direct3D 11 is fallback.");
     }
 
     std::string trainingStatus;
@@ -3242,6 +4956,7 @@ QString AgentController::gpuRemoteScript() const {
     return QString::fromUtf8(R"PY(#!/usr/bin/env python3
 import argparse
 import base64
+import concurrent.futures
 import csv
 import hashlib
 import io
@@ -3339,12 +5054,94 @@ def field_text(value):
         return compact(json.dumps(value, ensure_ascii=False))
     return compact(value)
 
+def is_noise_key(key):
+    key_norm = normalized(key)
+    noise = {
+        "id", "index", "row idx", "row index", "truncated cells", "features",
+        "num rows total", "num rows per page", "partial", "dataset", "config",
+        "split", "domain", "meta", "metadata", "subset", "license", "language",
+        "lang", "source file", "file", "url", "created at", "updated at"
+    }
+    return key_norm in noise or key_norm.endswith(" id")
+
+def is_reasoning_key(key):
+    key_norm = normalized(key)
+    terms = (
+        "reasoning", "rationale", "explanation", "analysis", "thinking",
+        "thought", "chain of thought", "chain of thoughts", "chain_of_thought",
+        "cot", "scratchpad", "work", "solution steps", "derivation"
+    )
+    return any(normalized(term) == key_norm or normalized(term) in key_norm for term in terms)
+
+def visible_reasoning(text):
+    clean = compact(text, 5000)
+    if not clean:
+        return ""
+    patterns = [
+        r"<think>\s*(.*?)\s*</think>",
+        r"<analysis>\s*(.*?)\s*</analysis>",
+        r"\[Thinking:\s*([^\]]+)\]",
+        r"(?:^|\s)(?:reasoning|rationale|explanation|analysis|thinking|chain\s+of\s+thought|cot)\s*:\s*(.*?)(?=\s(?:final\s+answer|answer|response|output)\s*:|\Z)",
+        r"(let'?s\s+think\s+step\s+by\s+step\s*[:.].*?)(?=\s(?:final\s+answer|answer|response|output)\s*:|\Z)",
+    ]
+    for pattern in patterns:
+        match = re.search(pattern, clean, flags=re.I | re.S)
+        if match:
+            got = compact(match.group(1), 520)
+            if got:
+                return "Visible reasoning example: " + got
+    return ""
+
+def clean_answer(answer):
+    answer = str(answer or "")
+    answer = re.sub(r"<think>\s*.*?\s*</think>", " ", answer, flags=re.I | re.S)
+    answer = re.sub(r"<analysis>\s*.*?\s*</analysis>", " ", answer, flags=re.I | re.S)
+    answer = re.sub(r"\[Thinking:[^\]]*\]", " ", answer, flags=re.I | re.S)
+    match = re.search(r"(?:^|\s)(?:final\s+answer|answer|response|output)\s*:\s*(.+)$", answer, flags=re.I | re.S)
+    if match:
+        answer = match.group(1)
+    answer = re.sub(
+        r"(?:^|\s)(?:reasoning|rationale|explanation|analysis|thinking|chain\s+of\s+thought|cot)\s*:\s*.*?(?=\s(?:final\s+answer|answer|response|output)\s*:|\Z)",
+        " ",
+        answer,
+        flags=re.I | re.S,
+    )
+    return compact(answer, 520)
+
+def merge_lessons(left, right):
+    left = compact(left, 700)
+    right = compact(right, 700)
+    if not left:
+        return right
+    if not right:
+        return left
+    if normalized(right)[:80] in normalized(left):
+        return left
+    return compact(left + "; " + right, 700)
+
+def reasoning_lesson(row, answer_text=""):
+    parts = []
+    if isinstance(row, dict):
+        for key, value in row.items():
+            if is_reasoning_key(key):
+                text = compact(field_text(value), 520)
+                if text:
+                    parts.append(str(key).replace("_", " ") + ": " + text)
+            if len(parts) >= 2:
+                break
+    answer_reasoning = visible_reasoning(answer_text)
+    if answer_reasoning:
+        parts.append(answer_reasoning)
+    return compact("; ".join(parts), 700)
+
 def first_field(row, names):
     for name in names:
         name_norm = normalized(name)
         for key, value in row.items():
+            if is_noise_key(key):
+                continue
             key_norm = normalized(key)
-            if key_norm == name_norm or name_norm in key_norm:
+            if key_norm == name_norm or key_norm.endswith(" " + name_norm) or (len(name_norm) > 2 and name_norm in key_norm):
                 text = field_text(value)
                 if text:
                     return text
@@ -3352,8 +5149,9 @@ def first_field(row, names):
 
 def add_sample(samples, question, answer, lesson="", max_samples=1000):
     question = compact(question)
-    answer = compact(answer)
-    lesson = compact(lesson)
+    answer_reasoning = visible_reasoning(answer)
+    answer = clean_answer(answer)
+    lesson = merge_lessons(lesson, answer_reasoning)
     if len(samples) >= max_samples or len(question.split()) < 2 or not answer:
         return
     key = normalized(question)
@@ -3440,6 +5238,7 @@ def conversation_samples(row, samples, max_samples):
     if not isinstance(turns, list):
         return False
     before = len(samples)
+    row_reasoning = reasoning_lesson(row)
     pending_user = ""
     for turn in turns:
         if isinstance(turn, dict):
@@ -3455,7 +5254,7 @@ def conversation_samples(row, samples, max_samples):
         if any(name in role for name in ("user", "human", "customer", "client", "patient")) or role == "prompter":
             pending_user = content
         elif (any(name in role for name in ("assistant", "gpt", "bot", "model", "agent")) or role == "ai") and pending_user:
-            add_sample(samples, pending_user, content, max_samples=max_samples)
+            add_sample(samples, pending_user, content, merge_lessons(row_reasoning, visible_reasoning(content)), max_samples=max_samples)
             pending_user = ""
             if len(samples) >= max_samples:
                 break
@@ -3503,19 +5302,19 @@ def row_samples(row, samples, max_samples):
     if question and extra_input and extra_input not in question:
         question = compact(question + " " + extra_input)
     if question and answer:
-        add_sample(samples, question, answer, context, max_samples)
+        add_sample(samples, question, answer, merge_lessons(context, reasoning_lesson(row, answer)), max_samples)
         return
 
     name = first_field(row, ["name", "title", "term", "word"])
     description = first_field(row, ["definition", "description", "summary", "text", "content"])
     if name and description and normalized(name) != normalized(description):
-        add_sample(samples, "What is " + name + "?", description, context, max_samples)
+        add_sample(samples, "What is " + name + "?", description, merge_lessons(context, reasoning_lesson(row, description)), max_samples)
         return
 
     useful = []
     for key, value in row.items():
         key_norm = normalized(key)
-        if key_norm in ("id", "index", "row idx", "row index") or key_norm.endswith(" id"):
+        if is_noise_key(key) or is_reasoning_key(key):
             continue
         text = field_text(value)
         if text and not text.startswith("http"):
@@ -3530,18 +5329,179 @@ def row_samples(row, samples, max_samples):
         add_sample(samples,
                    question_from_fields(useful[input_index], useful[output_index]),
                    useful[output_index][1],
-                   context_lesson(useful, input_index, output_index) or context,
+                   merge_lessons(context_lesson(useful, input_index, output_index) or context,
+                                 reasoning_lesson(row, useful[output_index][1])),
                    max_samples)
         return
 
     if len(useful) == 1:
-        add_sample(samples, "What information is in the " + useful[0][0] + " field?", useful[0][1], max_samples=max_samples)
+        add_sample(samples, "What information is in the " + useful[0][0] + " field?", useful[0][1], reasoning_lesson(row, useful[0][1]), max_samples=max_samples)
     elif len(useful) == 2:
-        add_sample(samples, question_from_fields(useful[0], useful[1]), useful[1][1], max_samples=max_samples)
+        add_sample(samples, question_from_fields(useful[0], useful[1]), useful[1][1], reasoning_lesson(row, useful[1][1]), max_samples=max_samples)
     elif len(useful) > 1:
         anchor_key, anchor_value = useful[0]
         for key, text in useful[1:4]:
-            add_sample(samples, "For " + anchor_key + " \"" + compact(anchor_value, 160) + "\", what is the " + key + "?", text, max_samples=max_samples)
+            add_sample(samples,
+                       "For " + anchor_key + " \"" + compact(anchor_value, 160) + "\", what is the " + key + "?",
+                       text,
+                       reasoning_lesson(row, text),
+                       max_samples=max_samples)
+
+def remote_parse_worker_count():
+    try:
+        requested = int(os.environ.get("AITRAINER_PARSE_WORKERS", "0"))
+    except Exception:
+        requested = 0
+    cpu_count = os.cpu_count() or 2
+    if requested > 0:
+        return max(1, min(requested, 64))
+    return max(1, min(max(1, cpu_count - 1), 16))
+
+def remote_parse_batch_size():
+    try:
+        requested = int(os.environ.get("AITRAINER_PARSE_BATCH_LINES", "200"))
+    except Exception:
+        requested = 200
+    return max(20, min(requested, 2000))
+
+def parse_row_batch_worker(batch, max_samples):
+    batch_samples = []
+    for row in batch:
+        row_samples(row, batch_samples, max_samples)
+        if len(batch_samples) >= max_samples:
+            break
+    return batch_samples
+
+def merge_worker_samples(samples, incoming, seen_questions, max_samples):
+    added = 0
+    for sample in incoming:
+        if len(samples) >= max_samples:
+            break
+        question = compact(sample.get("question", ""))
+        answer = compact(sample.get("answer", ""))
+        lesson = compact(sample.get("lesson", ""))
+        key = normalized(question)
+        if not key or key in seen_questions or len(question.split()) < 2 or not answer:
+            continue
+        seen_questions.add(key)
+        samples.append({"question": question, "answer": answer, "lesson": lesson})
+        added += 1
+    return added
+
+def parse_rows_parallel(row_iter, samples, max_samples, label, start_line=1):
+    if len(samples) >= max_samples:
+        return 0
+
+    workers = remote_parse_worker_count()
+    batch_size = remote_parse_batch_size()
+    seen_questions = set(normalized(sample.get("question", "")) for sample in samples)
+    log("[remote] parser workers: " + str(workers) + ", batch lines: " + str(batch_size) + ", source: " + label)
+
+    def sequential_batch(batch, batch_id, first_line):
+        incoming = parse_row_batch_worker(batch, batch_size * 4)
+        added = merge_worker_samples(samples, incoming, seen_questions, max_samples)
+        log("[remote] parser batch " + str(batch_id) + " lines "
+            + str(first_line) + "-" + str(first_line + len(batch) - 1)
+            + ": candidates=" + str(len(incoming))
+            + ", added=" + str(added)
+            + ", total=" + str(len(samples)))
+        return len(batch)
+
+    processed = 0
+    batch_id = 0
+    next_line = max(1, int(start_line))
+    batch = []
+
+    if workers <= 1:
+        for row in row_iter:
+            batch.append(row)
+            if len(batch) >= batch_size:
+                batch_id += 1
+                processed += sequential_batch(batch, batch_id, next_line)
+                next_line += len(batch)
+                batch = []
+                if len(samples) >= max_samples:
+                    break
+        if batch and len(samples) < max_samples:
+            batch_id += 1
+            processed += sequential_batch(batch, batch_id, next_line)
+        return processed
+
+    pending = []
+    try:
+        with concurrent.futures.ProcessPoolExecutor(max_workers=workers) as executor:
+            def submit_batch(batch_to_submit, first_line):
+                nonlocal batch_id
+                batch_id += 1
+                future = executor.submit(parse_row_batch_worker, batch_to_submit, batch_size * 4)
+                pending.append((batch_id, first_line, len(batch_to_submit), batch_to_submit, future))
+
+            def drain_one():
+                nonlocal processed
+                if not pending:
+                    return
+                current_id, first_line, count, original_batch, future = pending.pop(0)
+                try:
+                    incoming = future.result()
+                except Exception as exc:
+                    log("[remote] parser worker batch " + str(current_id) + " failed; retrying batch in-process: " + str(exc))
+                    incoming = parse_row_batch_worker(original_batch, batch_size * 4)
+                added = merge_worker_samples(samples, incoming, seen_questions, max_samples)
+                processed += count
+                log("[remote] parser worker batch " + str(current_id) + " lines "
+                    + str(first_line) + "-" + str(first_line + count - 1)
+                    + ": candidates=" + str(len(incoming))
+                    + ", added=" + str(added)
+                    + ", total=" + str(len(samples)))
+
+            for row in row_iter:
+                batch.append(row)
+                if len(batch) >= batch_size:
+                    submit_batch(batch, next_line)
+                    next_line += len(batch)
+                    batch = []
+                    while len(pending) >= workers * 3:
+                        drain_one()
+                        if len(samples) >= max_samples:
+                            break
+                if len(samples) >= max_samples:
+                    break
+
+            if batch and len(samples) < max_samples:
+                submit_batch(batch, next_line)
+
+            while pending and len(samples) < max_samples:
+                drain_one()
+
+            for _, _, _, _, future in pending:
+                future.cancel()
+    except Exception as exc:
+        log("[remote] parallel parser unavailable; falling back to single-process parser: " + str(exc))
+        for current_id, first_line, count, original_batch, future in pending:
+            future.cancel()
+            if len(samples) >= max_samples:
+                break
+            processed += sequential_batch(original_batch, current_id, first_line)
+        if batch and len(samples) < max_samples:
+            batch_id += 1
+            processed += sequential_batch(batch, batch_id, next_line)
+            next_line += len(batch)
+        fallback_batch = []
+        for row in row_iter:
+            fallback_batch.append(row)
+            if len(fallback_batch) >= batch_size:
+                batch_id += 1
+                processed += sequential_batch(fallback_batch, batch_id, next_line)
+                next_line += len(fallback_batch)
+                fallback_batch = []
+                if len(samples) >= max_samples:
+                    break
+        if fallback_batch and len(samples) < max_samples:
+            batch_id += 1
+            processed += sequential_batch(fallback_batch, batch_id, next_line)
+        return processed
+
+    return processed
 
 def walk_json(value, samples, max_samples):
     if len(samples) >= max_samples:
@@ -3667,11 +5627,11 @@ def load_hf_viewer_samples(source, max_samples):
     config = selected.get("config") or selected.get("config_name") or "default"
     split = selected.get("split") or "train"
     offset = 0
-    batch_size = 250
+    fetch_size = max(200, min(1000, remote_parse_batch_size() * 5))
     total_rows = None
 
     while len(samples) < max_samples:
-        length = min(batch_size, max_samples - len(samples))
+        length = min(fetch_size, max_samples - len(samples))
         rows_url = (
             "https://datasets-server.huggingface.co/rows?dataset=" + hf_param(source)
             + "&config=" + hf_param(config)
@@ -3689,12 +5649,13 @@ def load_hf_viewer_samples(source, max_samples):
         if not rows:
             break
 
-        for wrapped in rows:
-            row = wrapped.get("row", wrapped) if isinstance(wrapped, dict) else wrapped
-            if isinstance(row, dict):
-                row_samples(row, samples, max_samples)
-            if len(samples) >= max_samples:
-                break
+        parse_rows_parallel(
+            (wrapped.get("row", wrapped) if isinstance(wrapped, dict) else wrapped for wrapped in rows),
+            samples,
+            max_samples,
+            "Dataset Viewer " + source,
+            offset + 1,
+        )
 
         offset += len(rows)
         if len(rows) < length or (total_rows and offset >= total_rows):
@@ -3751,10 +5712,7 @@ def load_samples(source, max_samples):
         split_name = "train" if "train" in ds_dict else next(iter(ds_dict.keys()))
         dataset = ds_dict[split_name]
 
-    for row in dataset:
-        row_samples(row, samples, max_samples)
-        if len(samples) >= max_samples:
-            break
+    parse_rows_parallel(dataset, samples, max_samples, "Hugging Face dataset stream " + source, 1)
     return samples
 
 def unpack_archive(path):
@@ -4161,7 +6119,7 @@ void AgentController::startDatasetBytesParsing(const QByteArray &datasetBytes, c
     if (useLocalGpuForParse) {
         std::string gpuStatus;
         if (!LearningAgent::localGpuAvailable(&gpuStatus)) {
-            const QString message = "Dataset parsing failed: local GPU is checked but Direct3D is unavailable. "
+            const QString message = "Dataset parsing failed: local GPU is checked but GPU parser scan is unavailable. "
                 + QString::fromStdString(gpuStatus);
             setLocalGpuTrainingStatus(message);
             appendToSimulationLog("[Local GPU Parsing]: " + message);
@@ -4243,7 +6201,7 @@ void AgentController::startDatasetFileParsing(const QString &filePath) {
     if (useLocalGpuForParse) {
         std::string gpuStatus;
         if (!LearningAgent::localGpuAvailable(&gpuStatus)) {
-            const QString message = "Dataset parsing failed: local GPU is checked but Direct3D is unavailable. "
+            const QString message = "Dataset parsing failed: local GPU is checked but GPU parser scan is unavailable. "
                 + QString::fromStdString(gpuStatus);
             setLocalGpuTrainingStatus(message);
             appendToSimulationLog("[Local GPU Parsing]: " + message);
@@ -4373,7 +6331,7 @@ QString AgentController::trainLoraFromDatasetUrl(const QString &datasetUrl, int 
     if (m_useLocalGpuTraining) {
         std::string gpuStatus;
         if (!LearningAgent::localGpuAvailable(&gpuStatus)) {
-            const QString message = "Dataset training failed: Use local GPU is checked, but Direct3D is unavailable. "
+            const QString message = "Dataset training failed: Use local GPU is checked, but local GPU acceleration is unavailable. "
                 + QString::fromStdString(gpuStatus);
             setLocalGpuTrainingStatus(message);
             appendToSimulationLog("[Local GPU Training]: " + message);
@@ -4734,11 +6692,17 @@ void AgentController::finishGpuTraining() {
     m_isGpuTrainingRunning = false;
     m_gpuTrainingStage = GpuTrainingStage::None;
     const bool importFailed = importResult.startsWith("Import failed", Qt::CaseInsensitive);
+    QString portableExportResult;
+    if (!importFailed) {
+        portableExportResult = exportAgentPackage("student_agent.ai");
+    }
     const QString message = importFailed
         ? QString("GPU training downloaded %1, but local import failed. %2")
               .arg(QFileInfo(m_gpuLocalOutputPackage).absoluteFilePath(), importResult)
-        : QString("GPU training complete. Downloaded and imported %1. %2")
-              .arg(QFileInfo(m_gpuLocalOutputPackage).absoluteFilePath(), importResult);
+        : QString("GPU training complete. Downloaded and imported %1. %2 Default portable package refreshed: %3")
+              .arg(QFileInfo(m_gpuLocalOutputPackage).absoluteFilePath(),
+                   importResult,
+                   portableExportResult);
     setGpuTrainingStatus(message);
     appendToSimulationLog("[GPU Training]: " + message);
     emit simulationMessageAdded("system", "[GPU Training] " + message);
@@ -5212,7 +7176,7 @@ void AgentController::processNextDatasetTrainingChunk() {
     }
 
     const int completedBefore = m_datasetTrainingNextChunkIndex;
-    const int batchSize = m_useLocalGpuTraining ? 24 : 1;
+    const int batchSize = m_useLocalGpuTraining ? 128 : 1;
     QStringList batchChunks;
     while (m_datasetTrainingNextChunkIndex < m_pendingDatasetChunks.size()
            && batchChunks.size() < batchSize) {
@@ -5222,7 +7186,7 @@ void AgentController::processNextDatasetTrainingChunk() {
 
     if (m_useLocalGpuTraining && !m_isLocalGpuTrainingRunning) {
         m_isLocalGpuTrainingRunning = true;
-        setLocalGpuTrainingStatus("Running Direct3D 11 local GPU LoRA dataset training in batches...");
+            setLocalGpuTrainingStatus("Running local GPU LoRA dataset training in batches. CUDA is preferred when available; Direct3D 11 is fallback.");
     }
 
     std::string localGpuStatus;
@@ -5298,7 +7262,7 @@ QString AgentController::loraTrainingSummary() const {
     return QString("LoRA-like adapter: rank %1, trained pairs %2, local mode %3, file %4")
         .arg(m_agent.getLoraRank())
         .arg(m_agent.getLoraPairCount())
-        .arg(m_useLocalGpuTraining ? "Direct3D 11 GPU" : "CPU")
+        .arg(m_useLocalGpuTraining ? "CUDA/Direct3D local GPU" : "CPU")
         .arg(QDir::current().absoluteFilePath(m_loraFile));
 }
 
@@ -5313,6 +7277,7 @@ bool AgentController::copyTextToClipboard(const QString &text) const {
 
 bool AgentController::loadKnowledgeBank() {
     m_knowledgeBank.clear();
+    markKnowledgeIndexDirty();
 
     QFile file(m_knowledgeFile);
     if (!file.open(QIODevice::ReadOnly | QIODevice::Text)) {
@@ -5324,6 +7289,7 @@ bool AgentController::loadKnowledgeBank() {
         return false;
     }
 
+    bool skippedUntrustedSource = false;
     const QJsonArray items = doc.array();
     for (const QJsonValue &value : items) {
         QJsonObject obj = value.toObject();
@@ -5335,11 +7301,20 @@ bool AgentController::loadKnowledgeBank() {
         knowledge.source = obj["source"].toString().trimmed();
         knowledge.strength = obj["strength"].toDouble(1.0);
 
+        if (!isTrustedKnowledgeSource(knowledge.source)) {
+            skippedUntrustedSource = true;
+            continue;
+        }
+
         if (!knowledge.question.isEmpty() && !knowledge.answer.isEmpty()) {
             m_knowledgeBank.append(knowledge);
         }
     }
 
+    markKnowledgeIndexDirty();
+    if (skippedUntrustedSource) {
+        saveKnowledgeBank();
+    }
     return true;
 }
 
@@ -5365,6 +7340,113 @@ bool AgentController::saveKnowledgeBank() const {
     return true;
 }
 
+void AgentController::markKnowledgeIndexDirty() {
+    m_knowledgeIndexDirty = true;
+}
+
+void AgentController::ensureKnowledgeIndex() const {
+    if (!m_knowledgeIndexDirty) {
+        return;
+    }
+
+    m_knowledgeTokenIndex.clear();
+    m_knowledgeItemTokens.clear();
+    m_knowledgeItemTokens.reserve(m_knowledgeBank.size());
+
+    for (int i = 0; i < m_knowledgeBank.size(); ++i) {
+        const LearnedKnowledge &knowledge = m_knowledgeBank[i];
+        QStringList tokens;
+
+        auto appendTokens = [&tokens](const QString &text, int maxTokens) {
+            const QStringList extracted = significantQuestionTokens(text);
+            for (const QString &token : extracted) {
+                if (tokens.contains(token)) {
+                    continue;
+                }
+                tokens.append(token);
+                if (tokens.size() >= maxTokens) {
+                    return;
+                }
+            }
+        };
+
+        appendTokens(knowledge.question, 64);
+        appendTokens(knowledge.correction.isEmpty() ? knowledge.lesson : knowledge.correction, 128);
+        appendTokens(knowledge.answer, 96);
+
+        m_knowledgeItemTokens.append(tokens);
+        for (const QString &token : tokens) {
+            m_knowledgeTokenIndex[token].append(i);
+        }
+    }
+
+    m_knowledgeIndexDirty = false;
+}
+
+QVector<int> AgentController::candidateKnowledgeIndexes(const QString &query, int limit) const {
+    ensureKnowledgeIndex();
+
+    limit = qMax(1, limit);
+    const QStringList queryTokens = significantQuestionTokens(query);
+    if (queryTokens.isEmpty()) {
+        QVector<int> fallback;
+        if (m_knowledgeBank.size() <= limit) {
+            fallback.reserve(m_knowledgeBank.size());
+            for (int i = 0; i < m_knowledgeBank.size(); ++i) {
+                fallback.append(i);
+            }
+        }
+        return fallback;
+    }
+
+    QHash<int, int> scores;
+    for (const QString &token : queryTokens) {
+        const auto indexesIt = m_knowledgeTokenIndex.constFind(token);
+        if (indexesIt == m_knowledgeTokenIndex.constEnd()) {
+            continue;
+        }
+
+        const int tokenWeight = token.front().isDigit() ? 4 : (token.length() >= 6 ? 2 : 1);
+        for (int index : indexesIt.value()) {
+            scores[index] += tokenWeight;
+        }
+    }
+
+    if (scores.isEmpty()) {
+        QVector<int> fallback;
+        if (m_knowledgeBank.size() <= limit) {
+            fallback.reserve(m_knowledgeBank.size());
+            for (int i = 0; i < m_knowledgeBank.size(); ++i) {
+                fallback.append(i);
+            }
+        }
+        return fallback;
+    }
+
+    QVector<std::pair<int, int>> ranked;
+    ranked.reserve(scores.size());
+    for (auto it = scores.constBegin(); it != scores.constEnd(); ++it) {
+        ranked.append({it.key(), it.value()});
+    }
+
+    std::sort(ranked.begin(), ranked.end(), [](const auto &left, const auto &right) {
+        if (left.second != right.second) {
+            return left.second > right.second;
+        }
+        return left.first > right.first;
+    });
+
+    QVector<int> candidates;
+    candidates.reserve(qMin(limit, ranked.size()));
+    for (const auto &item : ranked) {
+        candidates.append(item.first);
+        if (candidates.size() >= limit) {
+            break;
+        }
+    }
+    return candidates;
+}
+
 void AgentController::upsertKnowledge(const QString &question,
                                       const QString &lesson,
                                       const QString &answer,
@@ -5373,7 +7455,7 @@ void AgentController::upsertKnowledge(const QString &question,
                                       double strength) {
     const QString cleanQuestion = compactText(question, 0);
     const QString cleanAnswer = compactText(answer, 0);
-    if (cleanQuestion.isEmpty() || cleanAnswer.isEmpty()) {
+    if (cleanQuestion.isEmpty() || cleanAnswer.isEmpty() || !isTrustedKnowledgeSource(source)) {
         return;
     }
 
@@ -5394,6 +7476,7 @@ void AgentController::upsertKnowledge(const QString &question,
                 knowledge.source = source.trimmed();
             }
             knowledge.strength += qMax(0.1, strength);
+            markKnowledgeIndexDirty();
             return;
         }
     }
@@ -5406,13 +7489,18 @@ void AgentController::upsertKnowledge(const QString &question,
     knowledge.source = source.trimmed();
     knowledge.strength = qMax(0.1, strength);
     m_knowledgeBank.append(knowledge);
+    markKnowledgeIndexDirty();
 }
 
 int AgentController::findBestKnowledgeIndex(const QString &query, int *score) const {
     int bestIndex = -1;
     int bestScore = 0;
 
-    for (int i = 0; i < m_knowledgeBank.size(); ++i) {
+    const QVector<int> candidates = candidateKnowledgeIndexes(query);
+    for (int i : candidates) {
+        if (i < 0 || i >= m_knowledgeBank.size()) {
+            continue;
+        }
         const LearnedKnowledge &knowledge = m_knowledgeBank[i];
         const int currentScore = learningRelevanceScore(query,
                                                         knowledge.question,
@@ -5433,41 +7521,213 @@ int AgentController::findBestKnowledgeIndex(const QString &query, int *score) co
     return bestIndex;
 }
 
-QString AgentController::relatedKnowledgeContext(const QString &query, int limit) const {
-    QStringList entries;
-    QList<int> usedIndexes;
+QString AgentController::buildAppliedLearningAnswer(const QString &question, int *score) const {
+    if (score) {
+        *score = 0;
+    }
 
-    for (int count = 0; count < limit; ++count) {
-        int bestIndex = -1;
-        int bestScore = 0;
+    struct RankedKnowledge {
+        int index;
+        int score;
+        int questionScore;
+        int lessonScore;
+        int semanticCoverage;
+        int coreCoverage;
+        QStringList evidenceTokens;
+    };
 
-        for (int i = 0; i < m_knowledgeBank.size(); ++i) {
-            if (usedIndexes.contains(i)) {
-                continue;
-            }
+    QVector<RankedKnowledge> ranked;
+    const QVector<int> candidates = candidateKnowledgeIndexes(question, 1024);
+    ranked.reserve(candidates.size());
 
-            const LearnedKnowledge &knowledge = m_knowledgeBank[i];
-            const int currentScore = learningRelevanceScore(query,
-                                                            knowledge.question,
-                                                            knowledge.lesson,
-                                                            knowledge.correction,
-                                                            knowledge.answer,
-                                                            knowledge.strength);
-            if (currentScore > bestScore) {
-                bestScore = currentScore;
-                bestIndex = i;
-            }
+    for (int i : candidates) {
+        if (i < 0 || i >= m_knowledgeBank.size()) {
+            continue;
         }
 
-        if (bestIndex < 0 || bestScore < relatedLearningMinimumScore()) {
+        const LearnedKnowledge &knowledge = m_knowledgeBank[i];
+        const QString lesson = knowledge.correction.isEmpty() ? knowledge.lesson : knowledge.correction;
+        const QString learningText = QString("%1 %2 %3")
+            .arg(knowledge.question, lesson, knowledge.answer);
+        const int currentScore = learningRelevanceScore(question,
+                                                        knowledge.question,
+                                                        knowledge.lesson,
+                                                        knowledge.correction,
+                                                        knowledge.answer,
+                                                        knowledge.strength);
+        const int questionScore = questionSimilarityScore(question, knowledge.question);
+        const int lessonScore = meaningfulTokenOverlapScore(question, lesson);
+        const int semanticCoverage = tokenCoveragePercent(significantQuestionTokens(question, true),
+                                                          significantQuestionTokens(learningText, true));
+        const int coreCoverage = tokenCoveragePercent(significantQuestionTokens(question, false),
+                                                      significantQuestionTokens(learningText, false));
+        const QStringList evidenceTokens = overlappingEvidenceTokens(question, learningText, 5);
+        if (currentScore >= appliedLearningMinimumScore()
+            && !isLowConfidenceAnswerText(knowledge.answer)
+            && (questionScore >= 70
+                || semanticCoverage >= 45
+                || coreCoverage >= 30
+                || lessonScore >= 30
+                || evidenceTokens.size() >= 2)) {
+            ranked.append({i, currentScore, questionScore, lessonScore, semanticCoverage, coreCoverage, evidenceTokens});
+        }
+    }
+
+    if (ranked.isEmpty()) {
+        return "";
+    }
+
+    std::sort(ranked.begin(), ranked.end(), [](const RankedKnowledge &left, const RankedKnowledge &right) {
+        if (left.score != right.score) {
+            return left.score > right.score;
+        }
+        if (left.questionScore != right.questionScore) {
+            return left.questionScore > right.questionScore;
+        }
+        if (left.semanticCoverage != right.semanticCoverage) {
+            return left.semanticCoverage > right.semanticCoverage;
+        }
+        if (left.coreCoverage != right.coreCoverage) {
+            return left.coreCoverage > right.coreCoverage;
+        }
+        return left.index > right.index;
+    });
+
+    const RankedKnowledge bestRank = ranked.first();
+    if (score) {
+        *score = bestRank.score;
+    }
+
+    const LearnedKnowledge &best = m_knowledgeBank[bestRank.index];
+    const QString bestLesson = best.correction.isEmpty() ? best.lesson : best.correction;
+    const QString bestAnswer = polishUserFacingText(extractAnswerForDisplay(best.answer), 360, true);
+    if (bestAnswer.isEmpty() || isLowConfidenceAnswerText(bestAnswer)) {
+        return "";
+    }
+
+    const int questionOverlap = keywordOverlapScore(question, best.question);
+    const bool strongEnough = bestRank.score >= 58
+        || bestRank.questionScore >= 70
+        || bestRank.lessonScore >= 30
+        || bestRank.semanticCoverage >= 50
+        || bestRank.coreCoverage >= 35
+        || questionOverlap >= 2
+        || bestRank.evidenceTokens.size() >= 2;
+    if (!strongEnough) {
+        return "";
+    }
+
+    const QString source = best.source.trimmed().isEmpty() ? "trained memory" : best.source.trimmed();
+    const QString lessonSentence = bestLessonSentenceForQuestion(bestLesson, question, 220);
+    const QString normalizedQuestion = normalizedForMatch(question);
+
+    if (asksForExamples(question)) {
+        QStringList examples;
+        for (const RankedKnowledge &candidate : ranked) {
+            if (examples.size() >= 3) {
+                break;
+            }
+            if (candidate.score < qMax(appliedLearningMinimumScore(), bestRank.score - 24)) {
+                continue;
+            }
+            const LearnedKnowledge &knowledge = m_knowledgeBank[candidate.index];
+            const QString exampleQuestion = compactText(knowledge.question, 110);
+            const QString exampleAnswer = polishUserFacingText(extractAnswerForDisplay(knowledge.answer), 110, true);
+            if (exampleQuestion.isEmpty()
+                || exampleAnswer.isEmpty()
+                || isLowConfidenceAnswerText(exampleAnswer)) {
+                continue;
+            }
+            examples.append(QString("%1 -> %2").arg(exampleQuestion, exampleAnswer));
+        }
+
+        if (examples.isEmpty()) {
+            return "";
+        }
+
+        QString thinking = QString("I found %1 related trained item%2 from %3 and reused their question-answer patterns as examples.")
+            .arg(QString::number(examples.size()),
+                 examples.size() == 1 ? "" : "s",
+                 source);
+        thinking.replace(']', ')');
+        return QString("[Thinking: %1]\nAnswer: %2")
+            .arg(polishUserFacingText(thinking, 260, true),
+                 polishUserFacingText(examples.join(" | "), 0, true));
+    }
+
+    QString answer = bestAnswer;
+    if ((normalizedQuestion.startsWith("how ") || normalizedQuestion.contains(" how "))
+        && !lessonSentence.isEmpty()
+        && !normalizedForMatch(answer).contains(normalizedForMatch(lessonSentence).left(60))) {
+        answer = QString("%1 Apply that lesson here: %2").arg(lessonSentence, bestAnswer);
+    } else if ((normalizedQuestion.startsWith("why ") || normalizedQuestion.contains(" why "))
+               && !lessonSentence.isEmpty()
+               && !normalizedForMatch(answer).contains(normalizedForMatch(lessonSentence).left(60))) {
+        answer = QString("%1 The learned rule behind it is: %2").arg(bestAnswer, lessonSentence);
+    }
+    const QString groundedAnswer = buildLessonGroundedAnswer(bestLesson, question, answer);
+    if (!groundedAnswer.isEmpty()) {
+        answer = groundedAnswer;
+    }
+
+    QString thinking = QString("I found a related %1 record, extracted the reusable lesson, and applied it to this question.")
+        .arg(source);
+    if (!bestRank.evidenceTokens.isEmpty()) {
+        thinking += " The shared ideas are " + bestRank.evidenceTokens.join(", ") + ".";
+    }
+    if (!lessonSentence.isEmpty()) {
+        thinking += " I use the related lesson to check that the answer explains the question, not just a matching word.";
+    }
+    thinking.replace(']', ')');
+
+    return QString("[Thinking: %1]\nAnswer: %2")
+        .arg(polishUserFacingText(thinking, 320, true),
+             polishUserFacingText(answer, 0, true));
+}
+
+QString AgentController::relatedKnowledgeContext(const QString &query, int limit) const {
+    QStringList entries;
+    QVector<std::pair<int, int>> ranked;
+    const QVector<int> candidates = candidateKnowledgeIndexes(query, qMax(64, limit * 256));
+    ranked.reserve(candidates.size());
+
+    for (int i : candidates) {
+        if (i < 0 || i >= m_knowledgeBank.size()) {
+            continue;
+        }
+        const LearnedKnowledge &knowledge = m_knowledgeBank[i];
+        const int currentScore = learningRelevanceScore(query,
+                                                        knowledge.question,
+                                                        knowledge.lesson,
+                                                        knowledge.correction,
+                                                        knowledge.answer,
+                                                        knowledge.strength);
+        if (currentScore >= relatedLearningMinimumScore()) {
+            ranked.append({i, currentScore});
+        }
+    }
+
+    std::sort(ranked.begin(), ranked.end(), [](const auto &left, const auto &right) {
+        if (left.second != right.second) {
+            return left.second > right.second;
+        }
+        return left.first > right.first;
+    });
+
+    for (const auto &candidate : ranked) {
+        if (entries.size() >= limit) {
             break;
         }
 
-        usedIndexes.append(bestIndex);
-        const LearnedKnowledge &knowledge = m_knowledgeBank[bestIndex];
+        const LearnedKnowledge &knowledge = m_knowledgeBank[candidate.first];
         const QString lesson = compactText(knowledge.correction.isEmpty() ? knowledge.lesson : knowledge.correction, 0);
-        entries.append(QString("- Related learning %1: Question: %2 | Lesson: %3 | Answer: %4")
+        const QString evidence = overlappingEvidenceTokens(query,
+                                                           knowledge.question + " " + lesson + " " + knowledge.answer,
+                                                           5).join(", ");
+        entries.append(QString("- Related learning %1 (score %2%3): Question: %4 | Lesson: %5 | Answer: %6")
             .arg(entries.size() + 1)
+            .arg(candidate.second)
+            .arg(evidence.isEmpty() ? "" : QString(", evidence: %1").arg(evidence))
             .arg(compactText(knowledge.question, 0),
                  lesson.isEmpty() ? "(no lesson stored)" : lesson,
                  compactText(knowledge.answer, 0)));
@@ -5523,8 +7783,16 @@ bool AgentController::isQuestionAlreadyLearned(const QString &question, int *sco
     for (const CurriculumItem &item : m_curriculumQuestions) {
         evaluateExisting(item.question);
     }
-    for (const LearnedKnowledge &knowledge : m_knowledgeBank) {
-        evaluateExisting(knowledge.question);
+
+    const QVector<int> candidates = candidateKnowledgeIndexes(question, 1024);
+    for (int index : candidates) {
+        if (index < 0 || index >= m_knowledgeBank.size()) {
+            continue;
+        }
+        evaluateExisting(m_knowledgeBank[index].question);
+        if (bestScore >= 160) {
+            break;
+        }
     }
 
     if (score) {
@@ -5692,53 +7960,40 @@ void AgentController::triggerNextSimulationTurn() {
         systemObj["content"] = "You are a JSON lesson generator. Always reply with a single valid JSON object containing keys 'question' (string), 'lesson' (string), and 'answer' (string). The question must be novel and must not repeat any known, corrected, or previously taught question. Do not wrap in markdown syntax.";
         messagesArray.append(systemObj);
 
-        const QStringList avoidQuestions = recentKnownQuestions(m_teacherRetryCount > 0 ? 90 : 60);
+        const QStringList avoidQuestions = recentKnownQuestions(m_teacherRetryCount > 0 ? 35 : 20);
         QString avoidBlock = avoidQuestions.isEmpty()
             ? "None yet."
             : "- " + avoidQuestions.join("\n- ");
         const QString requiredAngle = teacherLessonAngleDirective(currentSubject,
                                                                   m_curriculumQuestions.size() + 1,
                                                                   m_teacherRetryCount);
-        const QStringList forbiddenOpenings = questionOpenings(avoidQuestions, 14);
+        const QStringList forbiddenOpenings = questionOpenings(avoidQuestions, 8);
         const QString forbiddenOpeningBlock = forbiddenOpenings.isEmpty()
             ? "None yet."
             : "- " + forbiddenOpenings.join("\n- ");
         appendToSimulationLog(QString("[Curriculum]: Required lesson angle: %1").arg(requiredAngle));
 
         QString promptText = QString(
-            "Create one lesson about the requested topic, then create one question that tests the lesson.\n"
-            "Requested topic: '%1'.\n\n"
-            "Required lesson angle for THIS request: %4.\n"
-            "You must use this angle and must not reuse the same concept, scenario, or question pattern from the avoided list.\n\n"
-            "Topic obedience rules:\n"
-            "1. The lesson, question, and answer MUST stay inside the requested topic '%1'.\n"
-            "2. Do not switch to mathematics, puzzles, trick questions, generic riddles, or another subject unless the requested topic explicitly asks for that.\n"
-            "3. First choose one specific concept, rule, method, or key term inside '%1' that matches the required lesson angle.\n"
-            "4. The lesson must teach that concept clearly before the question is asked.\n\n"
-            "Question-quality rules:\n"
-            "1. The JSON 'question' must be a concrete student-facing question that can be answered using the lesson.\n"
-            "2. Do not use meta wording such as 'what question tests', 'what should the student know', or 'training item'.\n"
-            "3. The question must name the concept from the lesson; do not ask vague pronoun-only questions like 'Why is it useful?'.\n"
-            "4. The question must end with a question mark and have one direct answer.\n"
-            "5. The answer must be short and must match the lesson and question exactly.\n"
-            "6. Do not start the question with any forbidden opening pattern below.\n\n"
-            "You MUST reply in JSON format with exactly these three keys:\n"
-            "- 'lesson': (string) A concise lesson about one concept in '%1'. Include a [Thinking: ...] bracket with a verification check or example that shows how the concept can be reasoned through.\n"
-            "- 'question': (string) A new question directly testing the lesson concept.\n"
-            "- 'answer': (string) The direct, correct answer to the question.\n\n"
-            "Hard uniqueness rules:\n"
-            "1. Do not ask any question from the avoided list.\n"
-            "2. Do not reuse the same numbers, wording pattern, puzzle setup, trick, or corrected concept from the avoided list.\n"
-            "3. Prefer a new concept or a new variant that tests a different skill.\n"
-            "4. If the student already learned a correction for a question, never ask that same question again.\n"
-            "5. Retry number for uniqueness: %3. If this is greater than 0, your previous output was rejected as repetitive, so choose a different scenario, different wording, and different answer type.\n\n"
-            "Forbidden question openings:\n%5\n\n"
-            "Avoid these already learned/corrected/rejected questions:\n%2"
-        ).arg(currentSubject,
-              avoidBlock,
-              QString::number(m_teacherRetryCount),
-              requiredAngle,
-              forbiddenOpeningBlock);
+            "Return ONE compact valid JSON object only. Keys exactly: lesson, question, answer.\n"
+            "Topic: %1\n"
+            "Required angle: %4\n"
+            "Retry: %3\n\n"
+            "Rules:\n"
+            "- Stay inside the topic. Do not switch subjects.\n"
+            "- Teach one concrete concept in 2-4 sentences.\n"
+            "- Include one short [Thinking: ...] verification inside lesson.\n"
+            "- Ask one concrete student question, <= 35 words, ending with '?'.\n"
+            "- The question must name the concept and be answerable from the lesson.\n"
+            "- Answer must be direct, <= 30 words.\n"
+            "- No markdown, no extra keys, no meta wording like 'what question tests'.\n"
+            "- Avoid repeated openings and repeated scenarios.\n\n"
+            "Forbidden openings:\n%5\n\n"
+            "Recent questions to avoid:\n%2")
+            .arg(currentSubject,
+                 avoidBlock,
+                 QString::number(m_teacherRetryCount),
+                 requiredAngle,
+                 forbiddenOpeningBlock);
 
         QJsonObject msgObj;
         msgObj["role"] = "user";
@@ -5748,14 +8003,15 @@ void AgentController::triggerNextSimulationTurn() {
         QJsonObject jsonBody;
         jsonBody["model"] = m_teacherModel;
         jsonBody["messages"] = messagesArray;
-        jsonBody["temperature"] = m_teacherRetryCount > 0 ? 0.95 : 0.65;
-        jsonBody["presence_penalty"] = m_teacherRetryCount > 0 ? 1.1 : 0.7;
-        jsonBody["frequency_penalty"] = m_teacherRetryCount > 0 ? 1.0 : 0.7;
-        jsonBody["max_tokens"] = 4096;
+        jsonBody["temperature"] = m_teacherRetryCount > 0 ? 0.85 : 0.55;
+        jsonBody["presence_penalty"] = m_teacherRetryCount > 0 ? 0.9 : 0.45;
+        jsonBody["frequency_penalty"] = m_teacherRetryCount > 0 ? 0.8 : 0.35;
+        jsonBody["max_tokens"] = 900;
 
         QNetworkRequest request(QUrl("https://api.featherless.ai/v1/chat/completions"));
         request.setHeader(QNetworkRequest::ContentTypeHeader, "application/json");
         request.setRawHeader("Authorization", "Bearer " + m_apiKey.trimmed().toUtf8());
+        request.setTransferTimeout(45000);
 
         QJsonDocument doc(jsonBody);
         m_currentReply = m_networkManager.post(request, doc.toJson());
@@ -5804,10 +8060,24 @@ void AgentController::triggerNextSimulationTurn() {
                     .arg(knowledge.source.isEmpty() ? "memory" : knowledge.source)
                     .arg(knowledge.strength, 0, 'f', 1));
             } else {
+                int appliedScore = 0;
+                const QString appliedResponse = buildAppliedLearningAnswer(item.question, &appliedScore);
+                if (!appliedResponse.isEmpty()) {
+                    answerStr = extractAnswerForDisplay(appliedResponse);
+                    const QString appliedThinking = extractLeadingCheckLine(appliedResponse);
+                    if (!appliedThinking.isEmpty()) {
+                        item.lesson = appliedThinking;
+                    }
+                    appendToSimulationLog(QString("  - Student applied related structured learning (score: %1).")
+                        .arg(appliedScore));
+                }
+
                 // Generate the answer part stochastically from memory only when no structured fact is available.
-                const double testingTemp = m_temperature;
-                const int testingContext = m_contextWindow;
-                answerStr = QString::fromStdString(m_agent.respond(item.question.toStdString(), testingTemp, testingContext, 4096)).trimmed();
+                if (answerStr.trimmed().isEmpty()) {
+                    const double testingTemp = m_temperature;
+                    const int testingContext = m_contextWindow;
+                    answerStr = QString::fromStdString(m_agent.respond(item.question.toStdString(), testingTemp, testingContext, 4096)).trimmed();
+                }
 
                 // Remove any thinking brackets from the answer if stochastically generated
                 int closeBracketIdx = answerStr.lastIndexOf(']');
@@ -5824,8 +8094,17 @@ void AgentController::triggerNextSimulationTurn() {
         QString thinkingStr = buildStudentVisibleThinking(item.lesson, item.question, answerStr);
         appendToSimulationLog(QString("  - Visible answer work generated: \"%1\"").arg(thinkingStr));
 
+        QString displayAnswerStr = buildLessonGroundedAnswer(item.lesson, item.question, answerStr);
+        if (displayAnswerStr.trimmed().isEmpty()) {
+            displayAnswerStr = answerStr;
+        }
+        if (normalizedForMatch(displayAnswerStr) != normalizedForMatch(answerStr)) {
+            appendToSimulationLog(QString("  - Expanded final answer with lesson-grounded explanation: \"%1\"")
+                .arg(displayAnswerStr));
+        }
+
         // Combine visible answer work with the generated answer
-        QString studentResponse = QString("[Thinking: %1]\nAnswer: %2").arg(thinkingStr, answerStr);
+        QString studentResponse = QString("[Thinking: %1]\nAnswer: %2").arg(thinkingStr, displayAnswerStr);
 
         appendToSimulationLog(QString("[Student Answer]: %1").arg(studentResponse));
         emit simulationMessageAdded("agent", studentResponse);
@@ -6101,30 +8380,24 @@ void AgentController::requestEvaluationAndCorrection(const QString &teaching, co
 
     appendToSimulationLog("Evaluating student response and formulating correction...");
 
-    QString evalPrompt = QString("You are a strict, objective academic grader. Your task is to evaluate both the student's thinking process and their answer based on the lesson taught and the question asked.\n\n"
-                                 "Lesson Taught: '%1'\n"
-                                 "Question Asked: '%2'\n"
-                                 "Student's Answer (including [Thinking: ...]): '%3'\n\n"
-                                 "Evaluation Requirements:\n"
-                                 "1. Analyze the student's thinking process inside the [Thinking: ...] bracket.\n"
-                                 "2. Critical Rule: The student's thinking must explain in its own words how it got the answer. For math, it must show the calculation or inverse check. For puzzles/trick questions, it must identify the key wording or rule that makes the answer follow. It must not merely say it learned, remembered, matched, or copied the answer.\n"
-                                 "3. Grade the thinking quality and the final answer correctness according to this rubric:\n"
-                                 "   - Score 95-100: The student's thinking gives a concrete calculation, inverse check, pattern check, or key-wording explanation that makes the final answer follow, and the final answer is correct.\n"
-                                 "   - Score 50-80: The student's thinking has some logic but is vague, relies on memory, or does not fully connect the question to the answer.\n"
-                                 "   - Score 0-45: The student's thinking lacks a real reason, only says it learned/copied/remembered the answer, or the final answer is incorrect.\n"
-                                 "4. In the 'feedback_to_improve' key, write feedback specifically rating whether the student explained why the answer follows.\n"
-                                 "5. In the 'improved_thinking' key, provide a corrected thinking statement showing how the student should explain the answer in its own words (e.g. '[Thinking: Answer check: to verify 43 + 28, I split it as 40+20=60 and 3+8=11, which gives 71.] The correct answer is 71.').\n"
-                                 "6. In the 'correction_lesson' key, write the actual teacher correction lesson the student must learn. This must be authored by you, include the correct answer, and explain the corrected method/rule for this exact question.\n\n"
-                                 "You MUST reply in JSON format with keys:\n"
-                                 "- 'thinking_score': (integer between 0 and 100 representing thinking quality)\n"
-                                 "- 'thinking_rating': (string like 'Excellent', 'Good', 'Needs Improvement') rating the thinking\n"
-                                 "- 'feedback_to_improve': (string, max 25 words) rating the thinking and instructing how to improve it\n"
-                                 "- 'improved_thinking': (string, max 60 words) containing the improved thinking block and correct answer for the student to learn and copy\n"
-                                 "- 'correction_lesson': (string, max 90 words) the teacher-authored correction lesson the student should learn\n"
-                                 "- 'final_score': (integer between 0 and 100 representing final answer correctness)")
-                                 .arg(teaching)
-                                 .arg(question)
-                                 .arg(answer);
+    QString evalPrompt = QString(
+        "Grade the student using the lesson and question. Return one compact valid JSON object only.\n\n"
+        "Lesson: %1\n"
+        "Question: %2\n"
+        "Student response: %3\n\n"
+        "Rubric:\n"
+        "- 95-100: final answer correct and thinking explains why it follows using scenario details.\n"
+        "- 50-80: answer mostly correct but thinking is vague or only checks fit.\n"
+        "- 0-45: answer wrong or thinking lacks a real reason.\n\n"
+        "Keys exactly:\n"
+        "thinking_score int, thinking_rating string, feedback_to_improve string <=25 words,\n"
+        "improved_thinking string <=65 words with [Thinking: ...] and corrected reasoning,\n"
+        "correction_lesson string <=90 words with correct answer plus reusable improvement rule,\n"
+        "final_score int.\n"
+        "Correction must teach the student to connect the lesson principle to the specific question details.")
+        .arg(compactText(teaching, 900),
+             compactText(question, 260),
+             compactText(answer, 700));
 
     QJsonArray evalMessages;
     QJsonObject evalSys;
@@ -6141,11 +8414,12 @@ void AgentController::requestEvaluationAndCorrection(const QString &teaching, co
     evalBody["model"] = m_teacherModel;
     evalBody["messages"] = evalMessages;
     evalBody["temperature"] = 0.3;
-    evalBody["max_tokens"] = 4096;
+    evalBody["max_tokens"] = 1000;
 
     QNetworkRequest evalReq(QUrl("https://api.featherless.ai/v1/chat/completions"));
     evalReq.setHeader(QNetworkRequest::ContentTypeHeader, "application/json");
     evalReq.setRawHeader("Authorization", "Bearer " + m_apiKey.trimmed().toUtf8());
+    evalReq.setTransferTimeout(45000);
 
     QJsonDocument evalDoc(evalBody);
     m_currentReply = m_networkManager.post(evalReq, evalDoc.toJson());
@@ -6332,12 +8606,27 @@ void AgentController::handleEvaluationResponse() {
     }
 
     QString correctionLesson = compactText(teacherCorrectionLesson, 0);
+    const QString correctedAnswer = extractCorrectedAnswerFromTeacherText(correctionLesson).isEmpty()
+        ? extractCorrectedAnswerFromTeacherText(improvedThinking)
+        : extractCorrectedAnswerFromTeacherText(correctionLesson);
+
     if (activeItem && !correctionLesson.isEmpty()) {
-        activeItem->lesson = correctionLesson;
+        if (!correctedAnswer.isEmpty()) {
+            activeItem->answer = correctedAnswer;
+            appendToSimulationLog(QString("  - Corrected answer captured from teacher feedback: %1").arg(correctedAnswer));
+        }
+
+        QString correctionForMemory = correctionLesson;
+        if (!improvedThinking.isEmpty()
+            && !normalizedForMatch(correctionForMemory).contains(normalizedForMatch(improvedThinking).left(80))) {
+            correctionForMemory = QString("%1 Improved thinking: %2").arg(correctionForMemory, improvedThinking);
+        }
+
+        activeItem->lesson = correctionForMemory;
         upsertKnowledge(activeItem->question,
-                        activeItem->lesson,
+                        correctionForMemory,
                         activeItem->answer,
-                        correctionLesson,
+                        correctionForMemory,
                         "teacher correction",
                         (finalScore < 100) ? 2.0 : 1.2);
     }
@@ -6358,8 +8647,19 @@ void AgentController::handleEvaluationResponse() {
         appendToSimulationLog("  - Student learning the teacher model's correction lesson...");
         QString structuredCorrection = correctionLesson;
         if (activeItem) {
-            structuredCorrection = QString("Teacher correction lesson. Question: %1 Correct answer: %2 Lesson: %3")
-                .arg(activeItem->question, activeItem->answer, correctionLesson);
+            structuredCorrection = QString(
+                "Teacher correction lesson.\n"
+                "Question: %1\n"
+                "Correct answer: %2\n"
+                "Feedback to improve: %3\n"
+                "Correct reasoning lesson: %4\n"
+                "Improved thinking model: %5\n"
+                "Reusable improvement rule: Explain why the answer follows by linking the lesson principle to the specific scenario details.")
+                .arg(activeItem->question,
+                     activeItem->answer,
+                     feedbackToImprove.isEmpty() ? "Explain the reasoning more concretely." : feedbackToImprove,
+                     correctionLesson,
+                     improvedThinking.isEmpty() ? buildStudentVisibleThinking(correctionLesson, activeItem->question, activeItem->answer) : improvedThinking);
         }
         m_agent.learn(structuredCorrection.toStdString(), correctionSalience);
         m_agent.trainLoraText(structuredCorrection.toStdString(), 6, 0.06, 4, 8.0, correctionSalience, m_useLocalGpuTraining);

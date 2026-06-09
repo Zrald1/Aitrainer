@@ -62,7 +62,23 @@ QString polishText(QString text, int maxLength = 0)
 
 bool looksLikeQuestion(const QString &input)
 {
-    const QString text = input.trimmed().toLower();
+    QString text = input.trimmed().toLower();
+    text.replace(QRegularExpression("\\s+"), " ");
+    bool changed = true;
+    while (changed) {
+        changed = false;
+        static const QStringList prefixes = {
+            "okay ", "ok ", "please ", "pls ", "alright ", "hey ", "hello ",
+            "can you please ", "could you please ", "can you ", "could you "
+        };
+        for (const QString &prefix : prefixes) {
+            if (text.startsWith(prefix)) {
+                text = text.mid(prefix.length()).trimmed();
+                changed = true;
+                break;
+            }
+        }
+    }
     if (text.endsWith("?")) {
         return true;
     }
@@ -70,7 +86,10 @@ bool looksLikeQuestion(const QString &input)
     static const QStringList starts = {
         "what ", "why ", "how ", "when ", "where ", "who ", "which ",
         "can ", "could ", "should ", "would ", "is ", "are ", "do ", "does ",
-        "did ", "solve ", "calculate ", "tell me ", "explain "
+        "did ", "solve ", "calculate ", "tell me ", "explain ", "show me ",
+        "give me ", "list ", "describe ", "teach me ", "help me ", "provide ",
+        "create ", "generate ", "write ", "make ", "compose ", "ask me ",
+        "quiz me "
     };
     for (const QString &start : starts) {
         if (text.startsWith(start)) {
@@ -210,15 +229,72 @@ QString conversationalAnswer(const QString &input)
     if (normalized == "how are you" || normalized == "how are you doing") {
         return formatAnswer("I identified this as a status question.", "I am running locally and ready to answer.");
     }
-    if (normalized == "what are you" || normalized == "who are you" || normalized.contains("what kind of ai")) {
+    if (normalized == "what are you"
+        || normalized == "who are you"
+        || normalized.contains("tell me what are you")
+        || normalized.contains("tell me who are you")
+        || normalized.contains("what kind of ai")
+        || normalized.contains("your identity")) {
         return formatAnswer("I identified this as an identity question.",
-                            "I am the imported student AI model running locally on this phone.");
+                            "I am the imported student AI model running locally on this device. I answer from imported lessons, teacher corrections, datasets, and explicit training.");
     }
-    if (normalized.contains("what can you do")) {
-        return formatAnswer("I identified this as a capability question.",
-                            "I can answer from the imported training memory and continue simple local conversation.");
+    if (normalized.contains("math")
+        && (normalized.contains("example") || normalized.contains("problem") || normalized.contains("practice"))) {
+        return formatAnswer("I identified this as a request for sample math practice.",
+                            "Here are example math problems: 1. If 12 boxes hold 8 pencils each, how many pencils are there? 2. A triangle has base 14 and height 9; what is its area? 3. What is 25 percent of 80?");
+    }
+    if (normalized.contains("what can you do")
+        || normalized.contains("capabil")
+        || normalized.contains("show me your skills")
+        || normalized.contains("show me what you can do")) {
+        return formatAnswer("I identified this as a capability request.",
+                            "I can answer trained questions, solve basic arithmetic and common word problems, explain my answer check, and use imported teacher or dataset lessons. Normal chat is read-only unless explicit training is started elsewhere.");
     }
     return "";
+}
+
+QString generativeAnswer(const QString &input)
+{
+    QString normalized = normalizedForMatch(input);
+    static const QStringList prefixes = {"okay ", "ok ", "please ", "pls "};
+    bool changed = true;
+    while (changed) {
+        changed = false;
+        for (const QString &prefix : prefixes) {
+            if (normalized.startsWith(prefix.trimmed() + " ")) {
+                normalized = normalized.mid(prefix.length()).trimmed();
+                changed = true;
+                break;
+            }
+        }
+    }
+
+    const bool generationRequest = normalized.startsWith("create ")
+        || normalized.startsWith("generate ")
+        || normalized.startsWith("write ")
+        || normalized.startsWith("make ")
+        || normalized.startsWith("compose ")
+        || normalized.startsWith("ask me ")
+        || normalized.startsWith("quiz me ")
+        || ((normalized.contains("question") || normalized.contains("problem"))
+            && (normalized.startsWith("give me ") || normalized.startsWith("provide ")));
+    if (!generationRequest) {
+        return "";
+    }
+
+    QString answer;
+    if (normalized.contains("age")) {
+        answer = "Practice problem: Maria is 12 years older than her brother. In 4 years, Maria will be twice her brother's age. How old is each person now?";
+    } else if (normalized.contains("math") || normalized.contains("mathematic") || normalized.contains("problem")) {
+        answer = "Practice problem: A student buys 3 notebooks and 2 pens for 17 dollars. Each notebook costs 4 dollars. What is the cost of one pen?";
+    } else if (normalized.contains("physics")) {
+        answer = "Practice question: A 2 kg cart accelerates at 3 m/s^2. What net force acts on it, and why does Newton's second law use mass?";
+    } else {
+        answer = "Practice prompt: Explain the main idea in your own words, give one concrete example, and justify why the example fits.";
+    }
+
+    return formatAnswer("I read this as a request to create a practice item, so I generate a complete prompt.",
+                        answer);
 }
 
 QString statementReply(const QString &input)
@@ -242,7 +318,7 @@ QString statementReply(const QString &input)
         clause = "you said \"" + statement + "\"";
     }
 
-    return formatAnswer("I read this as a statement and store its main idea as local chat context.",
+    return formatAnswer("I read this as a statement and answer without adding it to training memory.",
                         "I understand that " + clause);
 }
 
@@ -479,7 +555,10 @@ QString MobileAgentController::sendMessage(const QString &input)
         return "";
     }
 
-    QString response = conversationalAnswer(cleanInput);
+    QString response = generativeAnswer(cleanInput);
+    if (response.isEmpty()) {
+        response = conversationalAnswer(cleanInput);
+    }
     if (response.isEmpty() && looksLikeQuestion(cleanInput)) {
         response = arithmeticAnswer(cleanInput);
         if (response.isEmpty()) {
@@ -496,16 +575,12 @@ QString MobileAgentController::sendMessage(const QString &input)
             }
         }
         if (response.isEmpty()) {
-            response = formatAnswer("I checked the imported model but did not find enough related knowledge to verify an answer.",
+            response = formatAnswer(QString("I understood the request as \"%1\", then checked the imported model but did not find enough related knowledge to verify an answer.")
+                                        .arg(compactText(cleanInput, 140)),
                                     "I do not know confidently from this local model yet.");
         }
-
-        m_agent.learn(QString("Question: %1 Verified response: %2").arg(cleanInput, response).toStdString(), 0.25);
-        m_agent.save();
     } else if (response.isEmpty()) {
         response = statementReply(cleanInput);
-        m_agent.learn(QString("Statement: %1").arg(cleanInput).toStdString(), 0.3);
-        m_agent.save();
     }
 
     return response;

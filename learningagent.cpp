@@ -36,6 +36,10 @@ bool LearningAgent::trainLoraText(const std::string& input,
         return false;
     }
 
+    if (lora.pairCount() > 0) {
+        rank = lora.rank();
+        alpha = lora.alpha();
+    }
     lora.configure(rank, alpha);
     if (useLocalGpu) {
         std::string gpuStatus;

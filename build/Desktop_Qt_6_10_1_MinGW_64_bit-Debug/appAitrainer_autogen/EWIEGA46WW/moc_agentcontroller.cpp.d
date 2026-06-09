@@ -12,6 +12,7 @@ C:/QTapp/Aitrainer/build/Desktop_Qt_6_10_1_MinGW_64_bit-Debug/appAitrainer_autog
   C:/QTapp/Aitrainer/learningagent.h \
   C:/QTapp/Aitrainer/loraadapter.h \
   C:/Qt/6.10.1/mingw_64/include/QtCore/QFlags \
+  C:/Qt/6.10.1/mingw_64/include/QtCore/QHash \
   C:/Qt/6.10.1/mingw_64/include/QtCore/QIODevice \
   C:/Qt/6.10.1/mingw_64/include/QtCore/QList \
   C:/Qt/6.10.1/mingw_64/include/QtCore/QMap \
@@ -25,6 +26,7 @@ C:/QTapp/Aitrainer/build/Desktop_Qt_6_10_1_MinGW_64_bit-Debug/appAitrainer_autog
   C:/Qt/6.10.1/mingw_64/include/QtCore/QVariant \
   C:/Qt/6.10.1/mingw_64/include/QtCore/QVariantList \
   C:/Qt/6.10.1/mingw_64/include/QtCore/QVariantMap \
+  C:/Qt/6.10.1/mingw_64/include/QtCore/QVector \
   C:/Qt/6.10.1/mingw_64/include/QtCore/q17memory.h \
   C:/Qt/6.10.1/mingw_64/include/QtCore/q20functional.h \
   C:/Qt/6.10.1/mingw_64/include/QtCore/q20iterator.h \
@@ -153,6 +155,7 @@ C:/QTapp/Aitrainer/build/Desktop_Qt_6_10_1_MinGW_64_bit-Debug/appAitrainer_autog
   C:/Qt/6.10.1/mingw_64/include/QtCore/qvariantlist.h \
   C:/Qt/6.10.1/mingw_64/include/QtCore/qvariantmap.h \
   C:/Qt/6.10.1/mingw_64/include/QtCore/qvarlengtharray.h \
+  C:/Qt/6.10.1/mingw_64/include/QtCore/qvector.h \
   C:/Qt/6.10.1/mingw_64/include/QtCore/qversiontagging.h \
   C:/Qt/6.10.1/mingw_64/include/QtCore/qxptype_traits.h \
   C:/Qt/6.10.1/mingw_64/include/QtCore/qyieldcpu.h \

@@ -1,22 +1,12 @@
-Question 1: Why does knowing that the age difference between two people stays the same help solve an age problem where we need to find their current ages given a future relationship?
-Lesson: In age problems, a common concept is the 'age difference remains constant over time.' For example, if Maria is 10 years older than her brother now, she will still be 10 years older in any future year. This is because both people age at the same rate. When solving such problems, you can set up equations using this constant difference. [Thinking: Verify with an example: If Maria is 15 and her brother is 5 now (difference = 10), in 3 years Maria will be 18 and her brother will be 8 (difference still = 10).]
-Answer: It allows us to write one equation using the constant difference and another for the future condition, then solve for the unknown ages.
+Question 1: In Newton's second law F=ma, why must you use mass in kilograms and not weight in newtons for 'm'?
+Lesson: A common error in physics is mixing up mass and weight. Mass is the amount of matter (kg) and stays constant, while weight is the gravitational force (N) and depends on location. [Thinking: Students often use 'weight' casually in equations requiring mass, leading to unit mismatches.]
+Answer: Because F=ma relates net force to mass, not weight; using weight in newtons would double-count gravity.
 ----------------------------------------
-Question 2: In an age problem where three siblings have current ages summing to 45 years, what common mistake might a student make when asked for their total age in exactly four years?
-Lesson: A common mistake in age problems is to assume that the sum of ages remains constant over time. In reality, when each person ages by the same number of years, the sum of their ages increases by (number of people) × (years passed). For example, if two people are now 10 and 14, their sum is 24. In 5 years, they will be 15 and 19, sum = 34, which is not still 24 but increased by 2 × 5 = 10. [Thinking: Check that you add the same amount to each person's age before summing; do not keep the original sum fixed.]
-Answer: Assuming the sum stays at 45 instead of increasing by three times four (12) to become 57.
+Question 2: What does the term 'impulse' mean in physics?
+Lesson: In physics, 'impulse' is the product of force and the time interval over which it acts. It equals the change in momentum of an object. [Thinking: impulse links force and time to momentum change.] A longer collision time reduces the average force for the same momentum change.
+Answer: Impulse is force multiplied by time, equal to the change in momentum.
 ----------------------------------------
-Question 3: In an age problem where Maria is currently twice as old as John, what causes John's future age to increase at the same rate as Maria's future age?
-Lesson: In age problems, a common cause-and-effect relationship is that when one person's age changes by a certain number of years (the cause), the other person's age changes by the same number of years (the effect) because time passes equally for everyone. For example, if Alex is 10 and Ben is 15 now, in 5 years Alex will be 15 and Ben will be 20—both increased by 5. The constant difference between their ages remains unchanged regardless of time. [Thinking: Verify with an example: If the current ages are A and B with difference D = B - A, after t years, new ages are A+t and B+t; the new difference is (B+t) - (A+t) = B - A = D, so indeed the difference stays constant.]
-Answer: The equal passage of time for both people.
+Question 3: If a sealed gas container is heated, what causes the pressure to rise?
+Lesson: In physics, increasing the temperature of a gas in a sealed container causes the gas particles to move faster. [Thinking: verifies cause (temperature) and effect (particle speed) relationship.] This faster motion leads to more frequent and forceful collisions with the container walls, which directly increases the pressure.
+Answer: Faster-moving gas particles collide more frequently and forcefully with the container walls.
 ----------------------------------------
-Question 4: In an age problem where two siblings have current ages summing to 30 years, what is the important difference between finding their total age in exactly one decade and simply adding ten to their current total?
-Lesson: In age problems, a key concept is the 'sum of ages' at different times. When we know the sum of current ages and are asked for the sum after a certain number of years, remember that each person's age increases by that same number of years. So if there are N people, the sum increases by N × (number of years). For example, if three people have ages summing to 45 now, in exactly 5 years each will be 5 years older, so the new sum is 45 + (3 × 5) = 60. [Thinking: Verify with an example: Current ages: Alice=10, Bob=15, Carol=20 → sum=45. In 5 years: Alice=15, Bob=20, Carol=25 → sum=60. Correct.]
-Answer: For two siblings, you must add twice ten (i.e., add twenty), not just ten.
-----------------------------------------
-
-DigitalOcean GPU training:
-- dataset: Jackrong/Claude-opus-4.6-TraceInversion-9000x
-- samples: 8633
-- epochs: 4
-- ROCm LoRA adapter: rank 8, pairs 368680, device AMD Instinct MI350X VF

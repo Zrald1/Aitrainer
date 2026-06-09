@@ -6,7 +6,7 @@ AI Trainer is a Qt Quick/C++ desktop application for experimenting with a learni
 
 ## Features
 
-- **Interactive AI chat** with learning-enabled memory updates.
+- **Interactive AI chat** that uses the learned student state without treating user chat as new training data.
 - **Teacher/student simulation** using a configurable Featherless chat-completions model.
 - **Visible student thinking** with calculation checks for math questions and reasoning checks for word/concept questions.
 - **Topic-based curriculum generation** where the teacher creates a lesson, a related question, and an answer.
@@ -144,6 +144,14 @@ Answer: ...
 
 The local student also keeps a lightweight sentence memory. Training text and datasets are converted into complete sentence examples where possible, so fallback answers can use readable English sentences instead of only raw word-transition chains.
 
+## Chat Runtime
+
+Manual chat is read-only for training: asking the student questions no longer appends chat text to memory, updates the LoRA adapter, writes the knowledge bank, calls the teacher API, or refreshes the dashboard counters on every message. New learning is added only through teacher lessons, teacher corrections/evaluations, pasted training text, dataset training, local GPU/CPU training, or remote GPU-server training.
+
+For speed, chat lookups use a compact knowledge index first. The user question is reduced to meaningful tokens, the index selects only likely related learned items, and the heavier relevance scoring runs on that smaller candidate set instead of scanning the full `student_knowledge.json` every time.
+
+Teacher corrections are learned as structured correction samples. When the evaluator says the correct answer or corrected final question explicitly, the app updates the curriculum answer, stores the correction lesson plus improved-thinking example, and trains the student to explain why the answer follows from the lesson and scenario details.
+
 ## Dataset Training
 
 The LoRA-style trainer can train from:
@@ -166,7 +174,13 @@ Answer: ...
 
 It understands common instruction, QA, and chat schemas such as `question`/`answer`, `instruction`/`output`, `prompt`/`completion`, `messages`, `conversations`, SQuAD-style `paragraphs/qas`, and CSV/TSV columns with matching names. If a dataset row has different column names, the loader now infers useful training pairs from the row fields, such as `text + label`, `title + description`, or generic field lookup questions.
 
+Dataset rows are pruned before training. Metadata/noise fields such as `domain`, `meta`, IDs, dataset config, split, file, URL, and similar bookkeeping columns are ignored. If a row has visible reasoning fields such as `reasoning`, `rationale`, `explanation`, `analysis`, `thinking`, `chain_of_thought`, `cot`, or answer text with `<think>...</think>`/`[Thinking: ...]`, the parser stores a compact visible-reasoning lesson and trains the final answer separately.
+
 Dataset training is chunked so the UI stays responsive. Binary files that cannot be converted to text or Dataset Viewer rows are rejected instead of being learned as corrupted text.
+
+## Local GPU Training
+
+The **Use local GPU** toggle accelerates training on the current computer, not on the SSH GPU server. On Windows the app now auto-detects CUDA-capable NVIDIA hardware and prefers a dynamic CUDA backend when the CUDA driver/runtime compiler accepts the device. If CUDA is unavailable or rejects the GPU/toolkit combination, it falls back to Direct3D 11 compute on the selected hardware adapter instead of silently using CPU. Larger dataset batches are grouped together so local GPU dispatches have enough work to show visible load.
 
 ## DigitalOcean GPU Remote Training
 
@@ -190,6 +204,8 @@ Server requirements:
 - A Hugging Face token in the app settings when the remote dataset is private or gated.
 
 The current bridge trains this project's `.ai` package format: associative memory, sentence memory, structured knowledge, notes, and the app's `AITRAINER_LORA_V1` low-rank adapter. The remote adapter pass uses ROCm PyTorch tensors on the AMD GPU and fails instead of silently falling back to CPU if HIP GPU training is unavailable. It does not create a full transformer checkpoint or Hugging Face PEFT adapter by itself. If you add a transformer training script later, this SSH/SCP bridge can be reused as the transfer and orchestration layer.
+
+Remote dataset parsing is batched and parallelized on the GPU server before adapter training starts. By default it parses 200 dataset rows per worker batch and uses up to 16 CPU worker processes. Advanced server-side overrides: `AITRAINER_PARSE_WORKERS` and `AITRAINER_PARSE_BATCH_LINES`.
 
 ## Export and Import
 
