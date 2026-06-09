@@ -3248,8 +3248,13 @@ import io
 import json
 import os
 import re
+import socket
 import struct
+import subprocess
 import sys
+import time
+import urllib.error
+import urllib.parse
 import urllib.request
 import zlib
 
@@ -3258,6 +3263,38 @@ HF_TOKEN = os.environ.get("HF_TOKEN", "").strip()
 
 def log(message):
     print(message, flush=True)
+
+def log_remote_runtime():
+    log("[remote] host: " + socket.gethostname())
+    log("[remote] python: " + sys.executable)
+    try:
+        with open("/opt/rocm/.info/version", "r", encoding="utf-8", errors="replace") as f:
+            log("[remote] ROCm version: " + f.read().strip())
+    except Exception as exc:
+        log("[remote] ROCm version file unavailable: " + str(exc))
+
+    for command in (
+        ["/opt/rocm/bin/rocm-smi", "--showproductname"],
+        ["rocm-smi", "--showproductname"],
+        ["amd-smi", "static", "--gpu", "--asic"],
+    ):
+        try:
+            output = subprocess.check_output(
+                command,
+                stderr=subprocess.STDOUT,
+                text=True,
+                timeout=15,
+            )
+            lines = [line.strip() for line in output.splitlines() if line.strip()]
+            if lines:
+                log("[remote] AMD GPU inventory via " + command[0] + ":")
+                for line in lines[:12]:
+                    log("[remote]   " + line)
+                return
+        except Exception:
+            pass
+
+    log("[remote] AMD GPU inventory command unavailable; PyTorch HIP check will enforce GPU training.")
 
 def qt_uncompress(payload):
     if payload.startswith(MAGIC):
@@ -3585,6 +3622,88 @@ def parse_text_payload(text, samples, max_samples):
         if len(samples) >= max_samples:
             return
 
+def hf_headers():
+    headers = {"User-Agent": "AitrainerRemote/1.0"}
+    if HF_TOKEN:
+        headers["Authorization"] = "Bearer " + HF_TOKEN
+    return headers
+
+def fetch_hf_json(url):
+    last_error = None
+    for attempt in range(6):
+        req = urllib.request.Request(url, headers=hf_headers())
+        try:
+            with urllib.request.urlopen(req, timeout=120) as res:
+                return json.loads(res.read().decode("utf-8", errors="replace"))
+        except urllib.error.HTTPError as exc:
+            last_error = exc
+            if exc.code != 429 or attempt == 5:
+                raise
+            delay = min(90, 5 * (2 ** attempt))
+            log("[remote] Hugging Face Dataset Viewer rate limited; retrying in " + str(delay) + "s")
+            time.sleep(delay)
+    raise last_error
+
+def hf_param(value):
+    return urllib.parse.quote(str(value or ""), safe="")
+
+def load_hf_viewer_samples(source, max_samples):
+    samples = []
+    log("[remote] loading Hugging Face Dataset Viewer rows: " + source)
+    splits_url = "https://datasets-server.huggingface.co/splits?dataset=" + hf_param(source)
+    split_doc = fetch_hf_json(splits_url)
+    split_entries = split_doc.get("splits", [])
+    if not split_entries:
+        return samples
+
+    selected = None
+    for entry in split_entries:
+        if str(entry.get("split", "")).lower() == "train":
+            selected = entry
+            break
+    if selected is None:
+        selected = split_entries[0]
+
+    config = selected.get("config") or selected.get("config_name") or "default"
+    split = selected.get("split") or "train"
+    offset = 0
+    batch_size = 250
+    total_rows = None
+
+    while len(samples) < max_samples:
+        length = min(batch_size, max_samples - len(samples))
+        rows_url = (
+            "https://datasets-server.huggingface.co/rows?dataset=" + hf_param(source)
+            + "&config=" + hf_param(config)
+            + "&split=" + hf_param(split)
+            + "&offset=" + str(offset)
+            + "&length=" + str(length)
+        )
+        rows_doc = fetch_hf_json(rows_url)
+        rows = rows_doc.get("rows", [])
+        if total_rows is None:
+            try:
+                total_rows = int(rows_doc.get("num_rows_total", 0))
+            except Exception:
+                total_rows = 0
+        if not rows:
+            break
+
+        for wrapped in rows:
+            row = wrapped.get("row", wrapped) if isinstance(wrapped, dict) else wrapped
+            if isinstance(row, dict):
+                row_samples(row, samples, max_samples)
+            if len(samples) >= max_samples:
+                break
+
+        offset += len(rows)
+        if len(rows) < length or (total_rows and offset >= total_rows):
+            break
+        if offset % 1000 == 0:
+            log("[remote] loaded viewer rows: " + str(offset) + ", samples: " + str(len(samples)))
+
+    return samples
+
 def load_samples(source, max_samples):
     samples = []
     source = source.strip()
@@ -3611,7 +3730,11 @@ def load_samples(source, max_samples):
     try:
         from datasets import load_dataset
     except Exception as exc:
-        raise RuntimeError("Python package 'datasets' is required on the GPU server: " + str(exc))
+        log("[remote] Python package 'datasets' is unavailable; trying Hugging Face Dataset Viewer fallback")
+        try:
+            return load_hf_viewer_samples(source, max_samples)
+        except Exception as viewer_exc:
+            raise RuntimeError("Python package 'datasets' is unavailable and Dataset Viewer fallback failed: " + str(viewer_exc) + ". Original import error: " + str(exc))
 
     kwargs = {}
     if HF_TOKEN:
@@ -3679,11 +3802,241 @@ def dump_memory(memory):
             rows.append(f"{left} {right} {weight:.8g}")
     return ("\n".join(rows) + ("\n" if rows else "")).encode("utf-8")
 
-def train_sample(sample, memory, sentences, epochs):
+def clamp_rank(rank):
+    try:
+        rank = int(rank)
+    except Exception:
+        rank = 8
+    return max(1, min(rank, 16))
+
+def lora_initial_vector(token, rank, salt):
+    values = []
+    for idx in range(rank):
+        digest = hashlib.sha256((str(token) + "#" + str(salt) + "#" + str(idx)).encode("utf-8")).digest()
+        unit = (int.from_bytes(digest[:8], "little") % 2001) / 1000.0 - 1.0
+        values.append(unit * 0.01)
+    return values
+
+def vector_for_token(matrix, token, rank, salt):
+    values = matrix.get(token)
+    if not isinstance(values, list):
+        return lora_initial_vector(token, rank, salt)
+    clean = []
+    for value in values[:rank]:
+        try:
+            clean.append(float(value))
+        except Exception:
+            clean.append(0.0)
+    if len(clean) < rank:
+        clean.extend(lora_initial_vector(token, rank, salt)[len(clean):])
+    return clean
+
+def parse_lora(payload, target_rank):
+    rank = 4
+    alpha = 8.0
+    a_vectors = {}
+    b_vectors = {}
+    trained_pairs = set()
+    text = payload.decode("utf-8", errors="replace") if payload else ""
+    for line in text.splitlines():
+        parts = line.strip().split()
+        if not parts:
+            continue
+        if parts[0] == "AITRAINER_LORA_V1" and len(parts) >= 3:
+            try:
+                rank = clamp_rank(parts[1])
+                alpha = float(parts[2])
+            except Exception:
+                rank = 4
+                alpha = 8.0
+            continue
+        if parts[0] in ("A", "B") and len(parts) >= 2:
+            token = parts[1]
+            values = []
+            for value in parts[2:2 + rank]:
+                try:
+                    values.append(float(value))
+                except Exception:
+                    values.append(0.0)
+            if parts[0] == "A":
+                a_vectors[token] = values
+            else:
+                b_vectors[token] = values
+        elif parts[0] == "P" and len(parts) >= 3:
+            trained_pairs.add((parts[1], parts[2]))
+
+    rank = max(rank, clamp_rank(target_rank))
+    alpha = max(alpha, float(rank) * 2.0)
+    return rank, alpha, a_vectors, b_vectors, trained_pairs
+
+def dump_lora(rank, alpha, a_vectors, b_vectors, trained_pairs):
+    def fmt(value):
+        return "{:.9g}".format(float(value))
+
+    rows = ["AITRAINER_LORA_V1 " + str(rank) + " " + fmt(alpha)]
+    for token in sorted(a_vectors.keys()):
+        rows.append("A " + token + " " + " ".join(fmt(v) for v in vector_for_token(a_vectors, token, rank, 11)))
+    for token in sorted(b_vectors.keys()):
+        rows.append("B " + token + " " + " ".join(fmt(v) for v in vector_for_token(b_vectors, token, rank, 29)))
+    for left, right in sorted(trained_pairs):
+        rows.append("P " + left + " " + right)
+    return ("\n".join(rows) + "\n").encode("utf-8")
+
+def sample_training_text(sample):
     text = "Question: {q}\n".format(q=sample["question"])
     if sample.get("lesson"):
         text += "Lesson: {l}\n".format(l=sample["lesson"])
     text += "Answer: {a}".format(a=sample["answer"])
+    return text
+
+def collect_lora_pair_counts(samples, max_pairs):
+    pair_counts = {}
+    for sample in samples:
+        toks = tokens(sample_training_text(sample))
+        for idx in range(len(toks) - 1):
+            pair = (toks[idx], toks[idx + 1])
+            if pair in pair_counts:
+                pair_counts[pair] += 1.0
+            elif len(pair_counts) < max_pairs:
+                pair_counts[pair] = 1.0
+    return pair_counts
+
+def require_rocm_torch():
+    try:
+        import torch
+    except Exception as exc:
+        raise RuntimeError("ROCm PyTorch is required for MI350X GPU adapter training, but torch could not be imported: " + str(exc))
+
+    hip_version = getattr(torch.version, "hip", None)
+    if not hip_version:
+        raise RuntimeError("Installed PyTorch is not a ROCm/HIP build. Install ROCm PyTorch for AMD Instinct MI350X.")
+    if not torch.cuda.is_available():
+        raise RuntimeError("ROCm PyTorch is installed, but torch.cuda.is_available() is false. Check ROCm driver, permissions, and GPU visibility.")
+
+    device_count = torch.cuda.device_count()
+    device_index = 0
+    found_mi350 = False
+    for idx in range(device_count):
+        name = str(torch.cuda.get_device_name(idx))
+        log("[remote] PyTorch ROCm visible device " + str(idx) + ": " + name)
+        if "MI350" in name.upper() and not found_mi350:
+            device_index = idx
+            found_mi350 = True
+
+    if not found_mi350:
+        raise RuntimeError("ROCm PyTorch is available, but no AMD Instinct MI350-class GPU was reported. Refusing non-MI350 adapter training.")
+
+    torch.cuda.set_device(device_index)
+    device = torch.device("cuda:" + str(device_index))
+    device_name = torch.cuda.get_device_name(device_index)
+    log("[remote] PyTorch version: " + str(torch.__version__))
+    log("[remote] PyTorch HIP version: " + str(hip_version))
+    log("[remote] PyTorch ROCm selected device: " + str(device_index) + " / " + str(device_name))
+    try:
+        torch.set_float32_matmul_precision("high")
+    except Exception:
+        pass
+    return torch, device
+
+def merge_lora_deltas_to_memory(rank, alpha, a_vectors, b_vectors, trained_pairs, memory, minimum_delta=0.001):
+    merged = 0
+    alpha_over_rank = float(alpha) / float(max(1, rank))
+    for left, right in trained_pairs:
+        a = a_vectors.get(left)
+        b = b_vectors.get(right)
+        if not a or not b:
+            continue
+        dot = 0.0
+        for idx in range(rank):
+            dot += float(a[idx]) * float(b[idx])
+        delta = alpha_over_rank * dot
+        if delta >= minimum_delta:
+            memory[(left, right)] = memory.get((left, right), 0.0) + delta
+            merged += 1
+    return merged
+
+def train_lora_adapter_rocm(samples, files, memory, epochs, adapter_rank):
+    torch, device = require_rocm_torch()
+    pair_counts = collect_lora_pair_counts(samples, int(os.environ.get("AITRAINER_REMOTE_LORA_MAX_PAIRS", "1000000")))
+    if not pair_counts:
+        raise RuntimeError("No token pairs were available for ROCm LoRA adapter training.")
+
+    rank, alpha, a_vectors, b_vectors, trained_pairs = parse_lora(files.get("lora_adapter.txt", b""), adapter_rank)
+    epochs = max(1, min(int(epochs), 32))
+    learning_rate = 0.05
+    salience = max(1.0, float(epochs)) * 0.8
+    alpha_over_rank = float(alpha) / float(rank)
+
+    from_tokens = sorted(set(left for left, _ in pair_counts.keys()) | set(a_vectors.keys()))
+    to_tokens = sorted(set(right for _, right in pair_counts.keys()) | set(b_vectors.keys()))
+    from_index = {token: idx for idx, token in enumerate(from_tokens)}
+    to_index = {token: idx for idx, token in enumerate(to_tokens)}
+
+    a_init = [vector_for_token(a_vectors, token, rank, 11) for token in from_tokens]
+    b_init = [vector_for_token(b_vectors, token, rank, 29) for token in to_tokens]
+    pair_items = sorted(pair_counts.items())
+    pair_a = [from_index[pair[0][0]] for pair in pair_items]
+    pair_b = [to_index[pair[0][1]] for pair in pair_items]
+    counts = [pair[1] for pair in pair_items]
+
+    log("[remote] ROCm LoRA adapter training: pairs=" + str(len(pair_items))
+        + ", A tokens=" + str(len(from_tokens))
+        + ", B tokens=" + str(len(to_tokens))
+        + ", rank=" + str(rank)
+        + ", epochs=" + str(epochs))
+
+    a_tensor = torch.tensor(a_init, dtype=torch.float32, device=device)
+    b_tensor = torch.tensor(b_init, dtype=torch.float32, device=device)
+    pair_a_tensor = torch.tensor(pair_a, dtype=torch.long, device=device)
+    pair_b_tensor = torch.tensor(pair_b, dtype=torch.long, device=device)
+    count_tensor = torch.tensor(counts, dtype=torch.float32, device=device)
+    count_scale = torch.clamp(torch.sqrt(count_tensor), 1.0, 8.0)
+    target_delta = salience * torch.clamp(torch.log1p(count_tensor), 1.0, 4.0)
+
+    for epoch in range(epochs):
+        selected_a = a_tensor.index_select(0, pair_a_tensor)
+        selected_b = b_tensor.index_select(0, pair_b_tensor)
+        dot = (selected_a * selected_b).sum(dim=1)
+        current = alpha_over_rank * dot
+        error = torch.clamp(target_delta - current, -4.0, 4.0)
+        scale = (learning_rate * error * alpha_over_rank * count_scale).unsqueeze(1)
+
+        delta_a = torch.zeros_like(a_tensor)
+        delta_b = torch.zeros_like(b_tensor)
+        delta_a.index_add_(0, pair_a_tensor, scale * selected_b)
+        delta_b.index_add_(0, pair_b_tensor, scale * selected_a)
+        a_tensor = torch.clamp(a_tensor + delta_a, -8.0, 8.0)
+        b_tensor = torch.clamp(b_tensor + delta_b, -8.0, 8.0)
+        torch.cuda.synchronize(device)
+        log("[remote] ROCm LoRA adapter epoch " + str(epoch + 1) + "/" + str(epochs) + " complete")
+
+    a_cpu = a_tensor.detach().cpu().tolist()
+    b_cpu = b_tensor.detach().cpu().tolist()
+    for idx, token in enumerate(from_tokens):
+        a_vectors[token] = [float(v) for v in a_cpu[idx]]
+    for idx, token in enumerate(to_tokens):
+        b_vectors[token] = [float(v) for v in b_cpu[idx]]
+    for (left, right), _ in pair_items:
+        trained_pairs.add((left, right))
+
+    files["lora_adapter.txt"] = dump_lora(rank, alpha, a_vectors, b_vectors, trained_pairs)
+    merged = merge_lora_deltas_to_memory(rank, alpha, a_vectors, b_vectors, trained_pairs, memory)
+    log("[remote] ROCm LoRA adapter saved to lora_adapter.txt; merged deltas into memory: " + str(merged))
+    try:
+        torch.cuda.empty_cache()
+    except Exception:
+        pass
+    return {
+        "rank": rank,
+        "alpha": alpha,
+        "pairs": len(pair_items),
+        "trained_pairs": len(trained_pairs),
+        "merged": merged,
+        "device": str(torch.cuda.get_device_name(device)),
+    }
+
+def train_sample(sample, memory, sentences, epochs):
+    text = sample_training_text(sample)
 
     toks = tokens(text)
     salience = max(1.0, float(epochs)) * 0.8
@@ -3728,8 +4081,10 @@ def main():
     parser.add_argument("--dataset", required=True)
     parser.add_argument("--epochs", type=int, default=4)
     parser.add_argument("--max-samples", type=int, default=20000)
+    parser.add_argument("--adapter-rank", type=int, default=8)
     args = parser.parse_args()
 
+    log_remote_runtime()
     log("[remote] unpacking .ai package")
     archive, files = unpack_archive(args.input)
     samples = load_samples(args.dataset, max(1, args.max_samples))
@@ -3756,6 +4111,7 @@ def main():
         if idx % 1000 == 0:
             log("[remote] trained samples: " + str(idx) + "/" + str(len(samples)))
 
+    adapter_result = train_lora_adapter_rocm(samples, files, memory, args.epochs, args.adapter_rank)
     knowledge = update_knowledge(knowledge, samples, args.epochs)
     files["student_knowledge.json"] = (json.dumps(knowledge, indent=2, ensure_ascii=False) + "\n").encode("utf-8")
     files["agent_memory.txt"] = dump_memory(memory)
@@ -3765,6 +4121,7 @@ def main():
     note += "- dataset: " + args.dataset + "\n"
     note += "- samples: " + str(len(samples)) + "\n"
     note += "- epochs: " + str(args.epochs) + "\n"
+    note += "- ROCm LoRA adapter: rank " + str(adapter_result["rank"]) + ", pairs " + str(adapter_result["pairs"]) + ", device " + adapter_result["device"] + "\n"
     files["note.txt"] = note.encode("utf-8")
 
     log("[remote] repacking trained .ai package")
@@ -4436,9 +4793,19 @@ void AgentController::handleGpuProcessFinished(int exitCode, QProcess::ExitStatu
             }
         }
 
-        const QString command = QString("cd %1 && (python3 -m pip install --user -q datasets requests >/dev/null 2>&1 || true) && HF_TOKEN=%2 python3 %3 --input %4 --output %5 --dataset %6 --epochs %7 --max-samples %8")
-            .arg(shellQuote(m_gpuRemoteRunDir),
-                 shellQuote(m_huggingFaceToken.trimmed()),
+        const QString remoteVenv = m_gpuRemoteRunDir + "/.venv";
+        const QString remotePython = remoteVenv + "/bin/python";
+        QString command = QString("cd %1").arg(shellQuote(m_gpuRemoteRunDir));
+        command += " && REMOTE_PY='' && AITRAINER_USING_PREINSTALLED=0";
+        command += " && for py in ${AITRAINER_REMOTE_PYTHON:-} python3 python /opt/conda/bin/python /root/miniconda3/bin/python /root/anaconda3/bin/python /root/aitrainer-venv/bin/python /root/.venv/bin/python; do if [ -z \"$py\" ]; then continue; fi; if command -v \"$py\" >/dev/null 2>&1; then cand=$(command -v \"$py\"); else cand=\"$py\"; fi; if [ -x \"$cand\" ] && \"$cand\" -c 'import importlib.util,sys; spec=importlib.util.find_spec(\"torch\"); sys.exit(1) if spec is None else None; import torch; sys.exit(0 if getattr(torch.version,\"hip\",None) and torch.cuda.is_available() else 1)' >/dev/null 2>&1; then REMOTE_PY=\"$cand\"; AITRAINER_USING_PREINSTALLED=1; break; fi; done";
+        command += " && if [ -n \"$REMOTE_PY\" ]; then echo '[remote] using preinstalled ROCm PyTorch Python: '\"$REMOTE_PY\"; fi";
+        command += QString(" && if [ -z \"$REMOTE_PY\" ]; then if [ ! -x %1 ]; then echo '[remote] creating Python virtual environment'; (python3 -m venv %2 || (command -v apt-get >/dev/null 2>&1 && apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y python3-venv python3-pip && python3 -m venv %2)); fi; REMOTE_PY=%1; fi")
+            .arg(shellQuote(remotePython), shellQuote(remoteVenv));
+        command += " && if [ \"$AITRAINER_USING_PREINSTALLED\" = 0 ]; then \"$REMOTE_PY\" -m pip install -q --upgrade pip setuptools wheel; fi";
+        command += " && (\"$REMOTE_PY\" -c 'import importlib.util,sys; sys.exit(0 if importlib.util.find_spec(\"datasets\") else 1)' && echo '[remote] Python package datasets already available in selected Python' || (if [ \"$AITRAINER_USING_PREINSTALLED\" = 0 ]; then (\"$REMOTE_PY\" -m pip install -q datasets requests && echo '[remote] Python package install complete in venv' || echo '[remote] pip install failed; continuing with built-in Dataset Viewer fallback if needed'); else echo '[remote] selected preinstalled Python has no datasets package; using built-in Dataset Viewer fallback if needed'; fi))";
+        command += " && (\"$REMOTE_PY\" -c 'import importlib.util,sys; spec=importlib.util.find_spec(\"torch\"); sys.exit(1) if spec is None else None; import torch; sys.exit(0 if getattr(torch.version,\"hip\",None) and torch.cuda.is_available() else 1)' && echo '[remote] ROCm PyTorch GPU build available in selected Python' || (echo '[remote] ROCm PyTorch not found in selected Python; installing ROCm GPU torch. This can take several minutes.' && ((\"$REMOTE_PY\" -m pip install --progress-bar off --pre torch --index-url https://download.pytorch.org/whl/nightly/rocm7.2 --extra-index-url https://pypi.org/simple || \"$REMOTE_PY\" -m pip install --progress-bar off --index-url https://repo.amd.com/rocm/whl/gfx950-dcgpu/ --extra-index-url https://pypi.org/simple \"torch==2.11.0+rocm7.13.0\") && echo '[remote] ROCm PyTorch install complete in venv' || echo '[remote] ROCm PyTorch install failed; remote script will fail if HIP GPU is unavailable')))";
+        command += QString(" && HF_TOKEN=%1 \"$REMOTE_PY\" %2 --input %3 --output %4 --dataset %5 --epochs %6 --max-samples %7 --adapter-rank 8")
+            .arg(shellQuote(m_huggingFaceToken.trimmed()),
                  shellQuote(remoteScript),
                  shellQuote(remoteInput),
                  shellQuote(remoteOutput),
@@ -4515,6 +4882,8 @@ QString AgentController::trainCurrentAgentOnGpuServer(const QString &datasetUrl,
     m_gpuDatasetSource = normalizeHuggingFaceDatasetFileUrl(datasetUrl);
     m_gpuTrainingEpochs = qMax(1, qMin(epochs, 32));
 
+    appendToSimulationLog(QString("[GPU Training]: Local preparation only: exporting current .ai package. Remote training will run through SSH on %1.")
+        .arg(normalizedSshHost(m_gpuHost)));
     const QString exportResult = exportAgentPackage(m_gpuLocalInputPackage);
     if (exportResult.startsWith("Export failed", Qt::CaseInsensitive)) {
         return exportResult;

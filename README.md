@@ -182,11 +182,14 @@ For GPU training, the dataset field should be a Hugging Face repo ID, a direct d
 Server requirements:
 
 - A running DigitalOcean GPU droplet reachable by SSH.
+- AMD ROCm installed and visible to the user running SSH. MI350X requires ROCm 7.0.1 or later.
 - Python 3 and `pip` on the server.
+- Python virtual environment support (`python3-venv`). If no usable preinstalled GPU Python is detected, the app creates a per-run `.venv` on the server so Ubuntu/Debian PEP 668 system Python protections are not modified.
+- ROCm-enabled PyTorch for AMD Instinct MI350X. The app first scans common Python, conda, and venv paths for a preinstalled HIP PyTorch build. If none is found, it creates the run `.venv` and can attempt to install a ROCm 7.2 PyTorch wheel first, then the AMD `gfx950-dcgpu` wheel fallback.
 - Network access from the server to the dataset source.
 - A Hugging Face token in the app settings when the remote dataset is private or gated.
 
-The current bridge trains this project's `.ai` package format: associative memory, sentence memory, structured knowledge, and notes. It does not create a full transformer checkpoint or PEFT adapter by itself. If you add a transformer training script later, this SSH/SCP bridge can be reused as the transfer and orchestration layer.
+The current bridge trains this project's `.ai` package format: associative memory, sentence memory, structured knowledge, notes, and the app's `AITRAINER_LORA_V1` low-rank adapter. The remote adapter pass uses ROCm PyTorch tensors on the AMD GPU and fails instead of silently falling back to CPU if HIP GPU training is unavailable. It does not create a full transformer checkpoint or Hugging Face PEFT adapter by itself. If you add a transformer training script later, this SSH/SCP bridge can be reused as the transfer and orchestration layer.
 
 ## Export and Import
 
